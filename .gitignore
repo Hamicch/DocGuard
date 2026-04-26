@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Env files — never commit real secrets
+backend/.env
+frontend/.env.local
+.env
+
+# uv
+# Docker
+*.log
+
+# Terraform
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.backup
+infra/*.tfvars
+infra/.terraform.lock.hcl
+
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+frontend/.next/
+frontend/out/

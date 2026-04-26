@@ -1,0 +1,13 @@
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      # Hot-reload source during local development
+      - ./backend/src:/app/src
+    restart: unless-stopped
