@@ -1,7 +1,15 @@
+import structlog
 from fastapi import FastAPI
 from mangum import Mangum
 
+from src.api.routers import webhooks
 from src.config import settings
+
+structlog.configure(
+    wrapper_class=structlog.make_filtering_bound_logger(
+        __import__("logging").getLevelName(settings.log_level)
+    ),
+)
 
 app = FastAPI(
     title="DocGuard API",
@@ -9,6 +17,8 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/docs" if settings.environment != "production" else None,
 )
+
+app.include_router(webhooks.router)
 
 
 @app.get("/health")
