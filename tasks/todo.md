@@ -251,7 +251,7 @@
 
 > Move items here when actively working on them (one at a time).
 
-- `Phase 9`: pay down Lambda-safe webhook dispatch debt (`BackgroundTasks` -> SQS or async Lambda invoke)
+- `Phase 9`: pay down `RunRepository.create` placeholder `user_id` debt by wiring real user_id on run creation path
 
 ---
 
@@ -269,3 +269,4 @@
 - 2026-04-27 — Phase 7 shipped: auth middleware + run/finding/repo API routes + app wiring.
 - 2026-04-27 — Phase 8 shipped: Next.js dashboard scaffold, Supabase auth wiring, login/runs/detail/settings pages, repo connect form.
 - 2026-04-27 — Phase 9 started: Terraform baseline added (Lambda, API Gateway, CloudWatch alarms, variables/outputs), plus destroy script and infra docs.
+- 2026-04-27 — Phase 9 debt paydown: webhook dispatch now uses env-driven dispatcher with Lambda async / SQS support (no production reliance on FastAPI BackgroundTasks semantics).

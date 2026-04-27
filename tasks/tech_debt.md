@@ -35,6 +35,16 @@ behaviour for local development.
 **Paying it back:** Wire an SQS queue or async `lambda:InvokeFunction` call
 in the webhook handler before deploying to Lambda (Phase 9).
 
+**Status (2026-04-27):** ✅ Paid down.
+- Added `AuditDispatcher` (`backend/src/services/audit_dispatcher.py`) with
+  env-driven modes:
+  - `background` (local dev)
+  - `lambda_async` (Lambda `InvocationType='Event'`)
+  - `sqs` (SQS enqueue)
+- Webhook router now dispatches through this service and returns `503` if
+  dispatch infrastructure is misconfigured, instead of silently relying on
+  in-process background execution semantics in production.
+
 ---
 
 ## Phase 6 — Orchestrator

@@ -10,13 +10,15 @@ import structlog
 from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, status
 
 from src.config import settings
-from src.domain.exceptions import WebhookVerificationError
+from src.domain.exceptions import AuditRunError, WebhookVerificationError
+from src.services.audit_dispatcher import AuditDispatcher, AuditDispatchEvent
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 SUPPORTED_ACTIONS = {"opened", "synchronize", "reopened"}
+dispatcher = AuditDispatcher()
 
 
 def _verify_signature(body: bytes, signature_header: str | None) -> None:
@@ -36,18 +38,6 @@ def _verify_signature(body: bytes, signature_header: str | None) -> None:
 
     if not hmac.compare_digest(expected, received):
         raise WebhookVerificationError("Signature mismatch")
-
-
-async def _trigger_audit(payload: dict[str, Any], run_id: uuid.UUID) -> None:
-    """
-    Placeholder for async audit dispatch.
-
-    On Lambda: replace this body with boto3 Lambda.invoke(InvocationType='Event')
-    or an SQS send_message() call so the work outlives the webhook invocation.
-    In-process asyncio.create_task() is intentionally NOT used here.
-    """
-    log = logger.bind(run_id=str(run_id), pr=payload.get("number"))
-    log.info("audit.dispatch.placeholder — wire up SQS/Lambda invoke in Phase 6")
 
 
 @router.post(
@@ -97,6 +87,14 @@ async def github_webhook(
         action=action,
     )
 
-    background_tasks.add_task(_trigger_audit, payload, run_id)
+    try:
+        event = AuditDispatchEvent.from_webhook_payload(payload, run_id)
+        await dispatcher.dispatch(event, background_tasks)
+    except AuditRunError as exc:
+        logger.error("webhook.dispatch_failed", run_id=str(run_id), error=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Audit dispatch failed",
+        ) from exc
 
     return {"status": "triggered", "run_id": str(run_id)}

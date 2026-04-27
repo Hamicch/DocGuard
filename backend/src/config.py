@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     github_app_private_key: str = ""
     github_webhook_secret: str = ""
 
+    # Webhook dispatch strategy:
+    # - background: local dev only (FastAPI BackgroundTasks)
+    # - lambda_async: async invoke a worker Lambda
+    # - sqs: enqueue an audit task to SQS
+    audit_dispatch_mode: str = "background"
+    audit_worker_lambda_name: str = ""
+    audit_sqs_queue_url: str = ""
+
     # Provider-agnostic LLM client settings.
     # Default base URL points at OpenRouter (OpenAI-compatible).
     # Override LLM_BASE_URL + LLM_API_KEY to switch providers without code changes.

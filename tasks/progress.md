@@ -33,3 +33,6 @@ Manual Next.js 15 scaffold (TypeScript + Tailwind + App Router + shadcn baseline
 
 ## Phase 9 — Infrastructure (started 2026-04-27)
 Terraform baseline scaffolded for AWS deployment: provider/version pinning, Lambda function + IAM role + env variable wiring, HTTP API Gateway proxy integration, CloudWatch log group and alarms, and outputs (`api_gateway_url`, Lambda identifiers). Added `infra/terraform.tfvars.example`, `infra/README.md`, and a guarded destroy helper script at `infra/scripts/terraform-destroy.sh`.
+
+### Phase 9 Debt Paydown — Lambda-safe webhook dispatch
+Replaced direct webhook `BackgroundTasks` placeholder with an env-driven dispatcher service (`backend/src/services/audit_dispatcher.py`) that supports `background` (local), `lambda_async`, and `sqs` modes. Webhook router now validates dispatch payload shape (`installation_id`, `repo_full_name`, `pr_number`, `head_sha`) and fails fast with 503 when dispatch infrastructure is misconfigured.
