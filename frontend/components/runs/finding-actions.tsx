@@ -89,7 +89,7 @@ export function FindingActions({ findingId }: Props) {
       >
         Custom
       </button> */}
-			{error ? <p className='w-full text-xs text-red-600'>{error}</p> : null}
+			{/* {error ? <p className='w-full text-xs text-red-600'>{error}</p> : null} */}
 		</div>
 	);
 }
