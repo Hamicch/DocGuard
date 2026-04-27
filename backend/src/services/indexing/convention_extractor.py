@@ -12,6 +12,8 @@ Usage::
 
 from __future__ import annotations
 
+import uuid
+
 import structlog
 
 from src.domain.models import ConventionSet
@@ -35,7 +37,12 @@ class ConventionExtractor:
         self._llm = llm
         self._cache: dict[str, ConventionSet] = {}
 
-    async def extract(self, head_sha: str, file_contents: list[str]) -> ConventionSet:
+    async def extract(
+        self,
+        head_sha: str,
+        file_contents: list[str],
+        run_id: uuid.UUID | None = None,
+    ) -> ConventionSet:
         """Return the ``ConventionSet`` for *head_sha*.
 
         If the result for this commit is already cached, the LLM is not called
@@ -46,6 +53,7 @@ class ConventionExtractor:
             head_sha:      The commit SHA used as the cache key.
             file_contents: Python source strings for representative files
                            (5–10 recommended; extras are silently truncated).
+            run_id:        Optional audit run ID for LLM tracing (e.g. Langfuse).
 
         Returns:
             ``ConventionSet`` instance with natural-language convention fields.
@@ -65,7 +73,7 @@ class ConventionExtractor:
             files_sampled=len(sample),
         )
 
-        conventions = await self._llm.extract_conventions(sample)
+        conventions = await self._llm.extract_conventions(sample, run_id=run_id)
 
         self._cache[head_sha] = conventions
         logger.debug("convention_extractor.cached", sha=head_sha)

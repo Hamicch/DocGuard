@@ -38,4 +38,7 @@ The script requires typing `destroy` and uses `terraform.tfvars`.
 
 - Secrets are injected via Lambda environment variables for MVP (no Secrets Manager yet).
 - `lambda_zip_path` expects a built deployment artifact (e.g. `../backend/dist/lambda.zip`).
+- Langfuse tracing is optional. Set `langfuse_public_key`, `langfuse_secret_key`, and optionally
+  `langfuse_host` in `terraform.tfvars` to enable tracing in the deployed Lambda; leave them empty
+  to keep tracing disabled.
 - Full CI/CD packaging and deploy automation is covered in Phase 10.

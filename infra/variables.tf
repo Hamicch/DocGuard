@@ -104,6 +104,26 @@ variable "llm_base_url" {
   default     = "https://openrouter.ai/api/v1"
 }
 
+variable "langfuse_public_key" {
+  description = "Optional Langfuse public key for LLM tracing."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "langfuse_secret_key" {
+  description = "Optional Langfuse secret key for LLM tracing."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "langfuse_host" {
+  description = "Langfuse host URL."
+  type        = string
+  default     = "https://cloud.langfuse.com"
+}
+
 variable "log_level" {
   description = "Application log level."
   type        = string

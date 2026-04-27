@@ -23,7 +23,8 @@ from __future__ import annotations
 import time
 import uuid
 from collections import defaultdict
-from typing import TypeVar
+from contextlib import AbstractContextManager, nullcontext
+from typing import Any, TypeVar, cast
 
 import structlog
 from openai import AsyncOpenAI
@@ -72,11 +73,111 @@ class LLMClient:
     def __init__(self, api_key: str, base_url: str) -> None:
         self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         self._traces_by_run: dict[uuid.UUID, list[LLMTrace]] = defaultdict(list)
+        self._langfuse = self._init_langfuse()
 
     @classmethod
     def from_settings(cls) -> LLMClient:
         """Construct from the application ``Settings`` singleton."""
         return cls(api_key=settings.llm_api_key, base_url=settings.llm_base_url)
+
+    def _init_langfuse(self) -> Any | None:
+        if not settings.langfuse_public_key or not settings.langfuse_secret_key:
+            return None
+
+        try:
+            from langfuse import Langfuse
+        except ImportError as exc:
+            logger.warning("langfuse.import_failed", error=str(exc))
+            return None
+
+        return Langfuse(
+            public_key=settings.langfuse_public_key,
+            secret_key=settings.langfuse_secret_key,
+            host=settings.langfuse_host,
+            environment=settings.environment,
+        )
+
+    def _start_langfuse_generation(
+        self,
+        messages: list[dict[str, str]],
+        model: str,
+        response_format: type[T],
+        run_id: uuid.UUID | None,
+    ) -> AbstractContextManager[Any | None]:
+        if self._langfuse is None:
+            return nullcontext(None)
+
+        metadata: dict[str, str] = {"response_format": response_format.__name__}
+        trace_context: dict[str, str] | None = None
+
+        if run_id is not None:
+            metadata["run_id"] = str(run_id)
+            trace_context = {
+                "trace_id": self._langfuse.create_trace_id(seed=str(run_id)),
+            }
+
+        try:
+            return cast(
+                AbstractContextManager[Any | None],
+                self._langfuse.start_as_current_observation(
+                    name=response_format.__name__,
+                    as_type="generation",
+                    model=model,
+                    input={"messages": messages},
+                    metadata=metadata,
+                    trace_context=trace_context,
+                ),
+            )
+        except Exception as exc:
+            logger.warning(
+                "langfuse.start_failed",
+                error=str(exc),
+                model=model,
+                run_id=str(run_id) if run_id is not None else None,
+            )
+            return nullcontext(None)
+
+    def _extract_cost_usd(self, response: Any) -> float:
+        candidates = [
+            getattr(response, "cost", None),
+            getattr(getattr(response, "usage", None), "cost", None),
+            getattr(getattr(response, "usage", None), "total_cost", None),
+        ]
+
+        model_extra = getattr(response, "model_extra", None) or {}
+        if isinstance(model_extra, dict):
+            candidates.extend(
+                [
+                    model_extra.get("cost"),
+                    model_extra.get("total_cost"),
+                    model_extra.get("cost_usd"),
+                ]
+            )
+
+        usage_extra = getattr(getattr(response, "usage", None), "model_extra", None) or {}
+        if isinstance(usage_extra, dict):
+            candidates.extend(
+                [
+                    usage_extra.get("cost"),
+                    usage_extra.get("total_cost"),
+                    usage_extra.get("cost_usd"),
+                ]
+            )
+
+        for candidate in candidates:
+            if isinstance(candidate, int | float):
+                return float(candidate)
+
+        return 0.0
+
+    def _flush_langfuse(self) -> None:
+        if self._langfuse is None:
+            return
+
+        try:
+            self._langfuse.flush()
+        except Exception as exc:
+            logger.warning("langfuse.flush_failed", error=str(exc))
 
     async def chat_completion(
         self,
@@ -105,35 +206,57 @@ class LLMClient:
         """
         start = time.monotonic()
 
-        response = await self._client.beta.chat.completions.parse(
-            model=model,
-            messages=messages,  # type: ignore[arg-type]
-            response_format=response_format,
-        )
-
-        latency_ms = (time.monotonic() - start) * 1000
-        usage = response.usage
-
-        trace = LLMTrace(
-            trace_id=response.id,
-            run_id=run_id,
-            model=model,
-            prompt_tokens=usage.prompt_tokens if usage else 0,
-            completion_tokens=usage.completion_tokens if usage else 0,
-            latency_ms=round(latency_ms, 2),
-        )
-        if run_id is not None:
-            self._traces_by_run[run_id].append(trace)
-        logger.info("llm.trace", **trace.model_dump(mode="json"))
-
-        parsed = response.choices[0].message.parsed
-        if parsed is None:
-            raise ValueError(
-                f"LLM returned no parsed content for model {model}. "
-                "Check that the response_format schema is correct."
+        with self._start_langfuse_generation(messages, model, response_format, run_id) as generation:
+            response = await self._client.beta.chat.completions.parse(
+                model=model,
+                messages=messages,  # type: ignore[arg-type]
+                response_format=response_format,
             )
 
-        return parsed
+            latency_ms = (time.monotonic() - start) * 1000
+            usage = response.usage
+            prompt_tokens = usage.prompt_tokens if usage else 0
+            completion_tokens = usage.completion_tokens if usage else 0
+            total_tokens = (
+                getattr(usage, "total_tokens", None) if usage is not None else None
+            ) or (prompt_tokens + completion_tokens)
+            cost_usd = self._extract_cost_usd(response)
+
+            trace = LLMTrace(
+                trace_id=response.id,
+                run_id=run_id,
+                model=model,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                cost_usd=cost_usd,
+                latency_ms=round(latency_ms, 2),
+            )
+            if run_id is not None:
+                self._traces_by_run[run_id].append(trace)
+            logger.info("llm.trace", **trace.model_dump(mode="json"))
+
+            parsed = response.choices[0].message.parsed
+            if parsed is None:
+                raise ValueError(
+                    f"LLM returned no parsed content for model {model}. "
+                    "Check that the response_format schema is correct."
+                )
+
+            if generation is not None:
+                generation.update(
+                    output=parsed.model_dump(mode="json"),
+                    usage_details={
+                        "prompt_tokens": prompt_tokens,
+                        "completion_tokens": completion_tokens,
+                        "total_tokens": total_tokens,
+                    },
+                    cost_details={"total_cost": cost_usd} if cost_usd > 0 else None,
+                )
+
+            if run_id is None:
+                self._flush_langfuse()
+
+            return parsed
 
     async def extract_conventions(
         self,
@@ -163,4 +286,5 @@ class LLMClient:
         traces = self._traces_by_run.get(run_id, [])
         if run_id in self._traces_by_run:
             del self._traces_by_run[run_id]
+        self._flush_langfuse()
         return traces
