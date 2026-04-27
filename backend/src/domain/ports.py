@@ -25,7 +25,7 @@ class IGitHubAdapter(ABC):
 
     @abstractmethod
     async def get_pr_files(
-        self, repo_full_name: str, pr_number: int, installation_id: int, head_sha: str = ""
+        self, repo_full_name: str, pr_number: int, installation_id: int
     ) -> list[dict[str, str]]:
         """Return changed files: [{"path": ..., "content": ...}, ...]"""
 

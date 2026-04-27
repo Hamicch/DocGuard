@@ -14,8 +14,8 @@ from __future__ import annotations
 
 import structlog
 
-from src.adapters.llm_client import HAIKU, LLMClient
 from src.domain.models import ConventionSet
+from src.domain.ports import ILLMAdapter
 
 logger = structlog.get_logger(__name__)
 
@@ -23,39 +23,15 @@ logger = structlog.get_logger(__name__)
 # Keeps the LLM prompt from blowing up on large repos.
 MAX_FILES = 10
 
-_SYSTEM_PROMPT = """\
-You are a coding conventions analyst for Python codebases.
-
-Given a set of representative Python source files from a repository, infer the
-coding conventions used by this project. Focus on concrete, observable patterns.
-
-Extract conventions across these dimensions:
-- naming: variable, function, class naming style (snake_case, PascalCase, etc.)
-- control_flow: how loops, conditionals, and early returns are used
-- error_handling: exception handling patterns (specific exceptions, logging, re-raises)
-- imports: import grouping, aliasing conventions
-- comments: docstring format, inline comment style
-
-Be concise. Only describe patterns you can clearly observe. Leave fields empty
-if the files don't show a clear convention for that dimension.
-"""
-
-
-def _build_user_message(file_contents: list[str]) -> str:
-    parts = []
-    for i, content in enumerate(file_contents, 1):
-        parts.append(f"## File {i}\n\n```python\n{content}\n```")
-    return "\n\n".join(parts) + "\n\nExtract the coding conventions from these files."
-
 
 class ConventionExtractor:
-    """Wraps an LLM call with a per-commit cache.
+    """Wraps ``ILLMAdapter.extract_conventions`` with a per-commit cache.
 
     Args:
-        llm: Configured ``LLMClient`` instance.
+        llm: Any concrete implementation of ``ILLMAdapter``.
     """
 
-    def __init__(self, llm: LLMClient) -> None:
+    def __init__(self, llm: ILLMAdapter) -> None:
         self._llm = llm
         self._cache: dict[str, ConventionSet] = {}
 
@@ -89,14 +65,7 @@ class ConventionExtractor:
             files_sampled=len(sample),
         )
 
-        conventions = await self._llm.chat_completion(
-            messages=[
-                {"role": "system", "content": _SYSTEM_PROMPT},
-                {"role": "user", "content": _build_user_message(sample)},
-            ],
-            model=HAIKU,
-            response_format=ConventionSet,
-        )
+        conventions = await self._llm.extract_conventions(sample)
 
         self._cache[head_sha] = conventions
         logger.debug("convention_extractor.cached", sha=head_sha)

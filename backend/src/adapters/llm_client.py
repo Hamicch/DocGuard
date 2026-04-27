@@ -40,8 +40,9 @@ T = TypeVar("T", bound=BaseModel)
 # These are OpenRouter model strings. If routing directly to a provider,
 # replace with that provider's native model ID.
 
-GPT4O_MINI = "gpt-4o-mini"
-HAIKU = GPT4O_MINI  # alias: was Claude Haiku on OpenRouter; OpenAI equivalent is gpt-4o-mini
+HAIKU = "anthropic/claude-haiku-4-5"
+GPT4O_MINI = "openai/gpt-4o-mini"
+GEMINI_FLASH = "google/gemini-flash-1.5"
 
 
 class LLMClient:
@@ -75,7 +76,7 @@ class LLMClient:
 
         Args:
             messages:        OpenAI-style message list.
-            model:           Model string (e.g. ``GPT4O_MINI``, ``"gpt-4o"``).
+            model:           Model string (e.g. ``HAIKU``, ``GPT4O_MINI``).
             response_format: Pydantic model class to parse the response into.
             run_id:          Optional audit run ID attached to the trace log.
 
