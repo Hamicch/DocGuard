@@ -91,7 +91,7 @@
 
 ## Phase 5 — LLM Judgment Layer
 
-- [ ] `feat: LLM client` — `backend/src/adapters/llm_client.py`
+- [x] `feat: LLM client` — `backend/src/adapters/llm_client.py`
   - Provider-agnostic: uses the **OpenAI Python SDK** pointed at `https://openrouter.ai/api/v1`
     (OpenRouter exposes an OpenAI-compatible API so any provider is a config change, not a code change)
   - Swapping to a different base URL / API key is the only change needed to target OpenAI, Anthropic, etc. directly

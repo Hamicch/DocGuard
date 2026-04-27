@@ -144,6 +144,49 @@ class DiffResult(BaseModel):
     deleted_symbols: list[str] = Field(default_factory=list)
 
 
+# ── LLM trace / observability ─────────────────────────────────────────────────
+
+
+class LLMTrace(BaseModel):
+    """Emitted as a structured log event after every LLM call.
+
+    Surfaced in the dashboard (Phase 8) to show per-run LLM usage and cost.
+    """
+
+    trace_id: str  # provider request ID (e.g. "chatcmpl-xxx")
+    run_id: uuid.UUID | None = None
+    model: str
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    cost_usd: float = 0.0  # populated when provider returns cost info
+    latency_ms: float = 0.0
+
+
+# ── LLM judgment output types ─────────────────────────────────────────────────
+
+
+class DriftJudgment(BaseModel):
+    """Structured output from the drift judge LLM call."""
+
+    drifted: bool
+    severity: Severity = Severity.low
+    description: str = ""
+    proposed_fix: str | None = None
+    reasoning: str = ""
+    confidence: float = 0.0
+
+
+class StyleJudgment(BaseModel):
+    """Structured output from the style judge LLM call."""
+
+    violation: bool
+    severity: Severity = Severity.low
+    description: str = ""
+    proposed_fix: str | None = None
+    reasoning: str = ""
+    confidence: float = 0.0
+
+
 # ── LLM structured output types ───────────────────────────────────────────────
 
 
