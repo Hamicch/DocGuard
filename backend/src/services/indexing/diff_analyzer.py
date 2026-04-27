@@ -5,8 +5,9 @@ Parses a raw unified diff and extracts:
 - ``changed_symbols``  — Python symbol names (functions / classes) that appear
   in added or removed lines.  Used by the drift judge to restrict which
   ``LinkedPair`` objects need checking.
-- ``new_code_blocks``  — Contiguous chunks of added lines per hunk, as raw
-  strings.  Passed to the style judge for convention checking.
+- ``new_code_blocks``  — Contiguous chunks of added lines per hunk as
+  ``(file_path, code_block)`` tuples. Passed to the style judge for
+  convention checking.
 - ``deleted_symbols``  — Symbol names present only in removed lines (not in any
   added line).  Useful for spotting doc references to deleted code.
 
@@ -48,21 +49,55 @@ def _extract_symbol_names(code: str) -> set[str]:
     return names
 
 
-def _iter_hunks(diff_text: str) -> list[tuple[list[str], list[str]]]:
-    """Split *diff_text* into hunks and return (added_lines, removed_lines) tuples."""
-    hunks: list[tuple[list[str], list[str]]] = []
+def _parse_file_path_from_header(line: str) -> str | None:
+    if not line.startswith("+++ "):
+        return None
+    raw = line.removeprefix("+++ ").strip()
+    if raw == "/dev/null":
+        return None
+    if raw.startswith("b/"):
+        return raw[2:]
+    return raw
+
+
+def _iter_hunks(diff_text: str) -> list[tuple[str, list[str], list[str]]]:
+    """Split *diff_text* into hunks and return file-scoped hunk tuples."""
+    hunks: list[tuple[str, list[str], list[str]]] = []
     added: list[str] = []
     removed: list[str] = []
     in_hunk = False
+    current_file_path = "(unknown)"
 
     for line in diff_text.splitlines():
+        if line.startswith("+++ "):
+            if in_hunk and (added or removed):
+                hunks.append((current_file_path, added, removed))
+                added = []
+                removed = []
+            parsed_path = _parse_file_path_from_header(line)
+            current_file_path = parsed_path or "(unknown)"
+            in_hunk = False
+            continue
+
+        if line.startswith("--- "):
+            if in_hunk and (added or removed):
+                hunks.append((current_file_path, added, removed))
+                added = []
+                removed = []
+            in_hunk = False
+            continue
+
         if _FILE_HEADER_RE.match(line):
+            if in_hunk and (added or removed):
+                hunks.append((current_file_path, added, removed))
+                added = []
+                removed = []
             in_hunk = False
             continue
 
         if _HUNK_HEADER_RE.match(line):
             if in_hunk and (added or removed):
-                hunks.append((added, removed))
+                hunks.append((current_file_path, added, removed))
             added = []
             removed = []
             in_hunk = True
@@ -77,7 +112,7 @@ def _iter_hunks(diff_text: str) -> list[tuple[list[str], list[str]]]:
             removed.append(line[1:])
 
     if in_hunk and (added or removed):
-        hunks.append((added, removed))
+        hunks.append((current_file_path, added, removed))
 
     return hunks
 
@@ -98,9 +133,9 @@ def analyze_diff(diff_text: str) -> DiffResult:
 
     all_added_names: set[str] = set()
     all_removed_names: set[str] = set()
-    new_code_blocks: list[str] = []
+    new_code_blocks: list[tuple[str, str]] = []
 
-    for added_lines, removed_lines in _iter_hunks(diff_text):
+    for file_path, added_lines, removed_lines in _iter_hunks(diff_text):
         added_code = "\n".join(added_lines)
         removed_code = "\n".join(removed_lines)
 
@@ -111,7 +146,7 @@ def analyze_diff(diff_text: str) -> DiffResult:
         all_removed_names |= removed_names
 
         if added_code.strip():
-            new_code_blocks.append(added_code)
+            new_code_blocks.append((file_path, added_code))
 
     # A symbol is "changed" if it appears in added lines (modified or new).
     # A symbol is "deleted" if it appears only in removed lines.

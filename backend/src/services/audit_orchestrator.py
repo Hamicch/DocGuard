@@ -78,7 +78,7 @@ def _drift_to_finding(
 def _style_to_finding(
     judgment: StyleJudgment,
     run_id: uuid.UUID,
-    file_path: str = "(PR diff)",
+    file_path: str,
 ) -> Finding:
     return Finding(
         run_id=run_id,
@@ -120,6 +120,7 @@ class AuditOrchestrator:
     async def run_audit(
         self,
         repo: AuditRun,
+        repo_full_name: str,
         installation_id: int,
         head_sha: str,
     ) -> None:
@@ -127,11 +128,11 @@ class AuditOrchestrator:
 
         Args:
             repo:            Pre-created ``AuditRun`` domain object (status=pending).
+            repo_full_name:  Canonical repository full name (``owner/repo``).
             installation_id: GitHub App installation ID used for auth.
             head_sha:        Head commit SHA of the PR branch.
         """
         run_id = repo.id
-        repo_full_name = ""  # resolved below from run metadata
 
         log = logger.bind(run_id=str(run_id), pr=repo.pr_number)
         started_at = time.monotonic()
@@ -142,14 +143,6 @@ class AuditOrchestrator:
             # ── 1. Mark run as running ────────────────────────────────────────
             await self._run_repo.update_status(run_id, AuditStatus.running)
             log.info("audit.started")
-
-            # repo_full_name must be stored on AuditRun or passed in; for now
-            # it is injected via the pr_title field as a workaround until the
-            # Repo table lookup is wired (Phase 7 API layer resolves this properly).
-            # The orchestrator caller is responsible for setting pr_title to
-            # "owner/repo" when creating the run, OR passing repo_full_name directly.
-            # Here we accept it as a parameter on the run object via pr_title.
-            repo_full_name = repo.pr_title  # convention: caller sets this
 
             # ── 3. Fetch changed files ────────────────────────────────────────
             log.info("audit.fetching_files")
@@ -225,16 +218,20 @@ class AuditOrchestrator:
 
             style_fix_drafter = FixDrafter(self._llm, model=self._style_judge._model)
             style_results = await self._style_judge.judge_many(
-                diff_result.new_code_blocks, conventions, run_id=run_id
+                [block for _, block in diff_result.new_code_blocks],
+                conventions,
+                run_id=run_id,
             )
 
-            for _block, style_judgment in style_results:
+            for (file_path, _), (_, style_judgment) in zip(
+                diff_result.new_code_blocks, style_results, strict=True
+            ):
                 if style_judgment.violation:
                     enriched_style = cast(
                         StyleJudgment,
                         await style_fix_drafter.enrich(style_judgment, run_id=run_id),
                     )
-                    findings.append(_style_to_finding(enriched_style, run_id))
+                    findings.append(_style_to_finding(enriched_style, run_id, file_path))
 
             log.info("audit.judgments_complete", findings=len(findings))
 
@@ -253,6 +250,7 @@ class AuditOrchestrator:
             drift_count = sum(1 for f in findings if f.finding_type == FindingType.doc_drift)
             style_count = sum(1 for f in findings if f.finding_type == FindingType.style_violation)
             duration_ms = int((time.monotonic() - started_at) * 1000)
+            total_cost_usd = sum(trace.cost_usd for trace in self._llm.pop_run_traces(run_id))
 
             await self._run_repo.finalize_run(
                 run_id,
@@ -260,7 +258,7 @@ class AuditOrchestrator:
                 finding_count=len(findings),
                 drift_count=drift_count,
                 style_count=style_count,
-                cost_usd=0.0,  # TODO: accumulate from LLMTrace events
+                cost_usd=total_cost_usd,
                 duration_ms=duration_ms,
                 comment_id=comment_id,
             )
@@ -275,7 +273,7 @@ class AuditOrchestrator:
                 finding_count=len(findings),
                 drift_count=0,
                 style_count=0,
-                cost_usd=0.0,
+                cost_usd=sum(trace.cost_usd for trace in self._llm.pop_run_traces(run_id)),
                 duration_ms=duration_ms,
                 error=str(exc),
             )

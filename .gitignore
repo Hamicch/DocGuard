@@ -37,3 +37,6 @@ frontend/out/
 
 # Claude
 .claude/
+
+# Task planning docs
+tasks/

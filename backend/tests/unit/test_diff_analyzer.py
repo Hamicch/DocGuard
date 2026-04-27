@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import textwrap
 
-import pytest
-
 from src.services.indexing.diff_analyzer import analyze_diff
-
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -118,8 +115,10 @@ def test_new_code_blocks_captures_added_lines() -> None:
     diff = make_diff(added=["x = 1", "y = 2"])
     result = analyze_diff(diff)
     assert len(result.new_code_blocks) == 1
-    assert "x = 1" in result.new_code_blocks[0]
-    assert "y = 2" in result.new_code_blocks[0]
+    file_path, code_block = result.new_code_blocks[0]
+    assert file_path == "src/foo.py"
+    assert "x = 1" in code_block
+    assert "y = 2" in code_block
 
 
 def test_multiple_hunks_produce_multiple_code_blocks() -> None:
@@ -156,4 +155,22 @@ def test_file_headers_not_treated_as_added_or_removed() -> None:
     result = analyze_diff(diff)
     assert "real_fn" in result.changed_symbols
     # The +++ header must not add a spurious code block containing "+++ b/src/foo.py"
-    assert all("+++ b/src/foo.py" not in block for block in result.new_code_blocks)
+    assert all("+++ b/src/foo.py" not in code for _, code in result.new_code_blocks)
+
+
+def test_multi_file_diff_tracks_file_paths_per_block() -> None:
+    diff = textwrap.dedent("""\
+        --- a/src/foo.py
+        +++ b/src/foo.py
+        @@ -1,1 +1,1 @@
+        +def foo(): ...
+        --- a/src/bar.py
+        +++ b/src/bar.py
+        @@ -1,1 +1,1 @@
+        +def bar(): ...
+    """)
+    result = analyze_diff(diff)
+    assert result.new_code_blocks == [
+        ("src/foo.py", "def foo(): ..."),
+        ("src/bar.py", "def bar(): ..."),
+    ]

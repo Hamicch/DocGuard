@@ -36,12 +36,17 @@ class RunRepository(IRunRepository):
 
     async def create(self, run: AuditRun) -> AuditRun:
         try:
+            repo_result = await self._session.execute(
+                select(RepoORM).where(RepoORM.id == run.repo_id)
+            )
+            repo_row = repo_result.scalar_one_or_none()
+            if repo_row is None:
+                raise RepositoryError(f"Repo {run.repo_id} not found for run creation")
+
             row = AuditRunORM(
                 id=run.id,
                 repo_id=run.repo_id,
-                # user_id populated by caller via run.repo_id lookup in real usage;
-                # stored as repo_id's user_id — passed explicitly when available.
-                user_id=run.repo_id,  # placeholder; overridden by service layer
+                user_id=repo_row.user_id,
                 pr_number=run.pr_number,
                 pr_title=run.pr_title,
                 status=run.status.value,

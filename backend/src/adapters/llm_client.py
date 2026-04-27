@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections import defaultdict
 from typing import TypeVar
 
 import structlog
@@ -54,6 +55,7 @@ class LLMClient:
 
     def __init__(self, api_key: str, base_url: str) -> None:
         self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        self._traces_by_run: dict[uuid.UUID, list[LLMTrace]] = defaultdict(list)
 
     @classmethod
     def from_settings(cls) -> LLMClient:
@@ -104,6 +106,8 @@ class LLMClient:
             completion_tokens=usage.completion_tokens if usage else 0,
             latency_ms=round(latency_ms, 2),
         )
+        if run_id is not None:
+            self._traces_by_run[run_id].append(trace)
         logger.info("llm.trace", **trace.model_dump(mode="json"))
 
         parsed = response.choices[0].message.parsed
@@ -114,3 +118,10 @@ class LLMClient:
             )
 
         return parsed
+
+    def pop_run_traces(self, run_id: uuid.UUID) -> list[LLMTrace]:
+        """Return and clear buffered traces for a run."""
+        traces = self._traces_by_run.get(run_id, [])
+        if run_id in self._traces_by_run:
+            del self._traces_by_run[run_id]
+        return traces

@@ -12,25 +12,18 @@ from src.domain.models import (
     AuditStatus,
     ConventionSet,
     DiffResult,
-    DriftJudgment,
-    Finding,
-    FindingType,
-    LinkedPair,
-    Severity,
-    StyleJudgment,
 )
 from src.domain.ports import IFindingRepository, IGitHubAdapter, IRunRepository
 from src.services.audit_orchestrator import AuditOrchestrator
 
-
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 
-def make_run(pr_title: str = "owner/repo") -> AuditRun:
+def make_run(pr_title: str = "PR title") -> AuditRun:
     return AuditRun(
         repo_id=uuid.uuid4(),
         pr_number=42,
-        pr_title=pr_title,  # used as repo_full_name by orchestrator convention
+        pr_title=pr_title,
     )
 
 
@@ -80,6 +73,7 @@ def make_orchestrator(
 
 SHA = "abc123"
 INSTALLATION_ID = 12345
+REPO_FULL_NAME = "owner/repo"
 
 
 # ── happy path — no files, no findings ───────────────────────────────────────
@@ -97,7 +91,7 @@ async def test_run_marks_status_running_then_completed() -> None:
         patch("src.services.audit_orchestrator.StyleJudge"),
     ):
         MockCE.return_value.extract = AsyncMock(return_value=ConventionSet())
-        await orch.run_audit(run, INSTALLATION_ID, SHA)
+        await orch.run_audit(run, REPO_FULL_NAME, INSTALLATION_ID, SHA)
 
     run_repo.update_status.assert_awaited_once_with(run.id, AuditStatus.running)
     call_kwargs = run_repo.finalize_run.call_args.kwargs
@@ -116,9 +110,26 @@ async def test_run_posts_pr_comment() -> None:
         patch("src.services.audit_orchestrator.StyleJudge"),
     ):
         MockCE.return_value.extract = AsyncMock(return_value=ConventionSet())
-        await orch.run_audit(run, INSTALLATION_ID, SHA)
+        await orch.run_audit(run, REPO_FULL_NAME, INSTALLATION_ID, SHA)
 
     github.post_pr_comment.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_run_uses_explicit_repo_full_name_not_pr_title() -> None:
+    github = make_github()
+    orch = make_orchestrator(github=github)
+    run = make_run(pr_title="A human PR title")
+
+    with (
+        patch("src.services.audit_orchestrator.ConventionExtractor") as MockCE,
+        patch("src.services.audit_orchestrator.DriftJudge"),
+        patch("src.services.audit_orchestrator.StyleJudge"),
+    ):
+        MockCE.return_value.extract = AsyncMock(return_value=ConventionSet())
+        await orch.run_audit(run, REPO_FULL_NAME, INSTALLATION_ID, SHA)
+
+    github.get_pr_files.assert_awaited_once_with(REPO_FULL_NAME, run.pr_number, INSTALLATION_ID)
 
 
 @pytest.mark.asyncio
@@ -134,7 +145,7 @@ async def test_finalize_receives_comment_id() -> None:
         patch("src.services.audit_orchestrator.StyleJudge"),
     ):
         MockCE.return_value.extract = AsyncMock(return_value=ConventionSet())
-        await orch.run_audit(run, INSTALLATION_ID, SHA)
+        await orch.run_audit(run, REPO_FULL_NAME, INSTALLATION_ID, SHA)
 
     kwargs = run_repo.finalize_run.call_args.kwargs
     assert kwargs["comment_id"] == 777
@@ -152,7 +163,7 @@ async def test_no_findings_skips_bulk_create() -> None:
         patch("src.services.audit_orchestrator.StyleJudge"),
     ):
         MockCE.return_value.extract = AsyncMock(return_value=ConventionSet())
-        await orch.run_audit(run, INSTALLATION_ID, SHA)
+        await orch.run_audit(run, REPO_FULL_NAME, INSTALLATION_ID, SHA)
 
     finding_repo.bulk_create.assert_not_awaited()
 
@@ -173,7 +184,7 @@ async def test_exception_marks_run_failed() -> None:
         patch("src.services.audit_orchestrator.DriftJudge"),
         patch("src.services.audit_orchestrator.StyleJudge"),
     ):
-        await orch.run_audit(run, INSTALLATION_ID, SHA)
+        await orch.run_audit(run, REPO_FULL_NAME, INSTALLATION_ID, SHA)
 
     kwargs = run_repo.finalize_run.call_args.kwargs
     assert kwargs["status"] == AuditStatus.failed
@@ -193,7 +204,7 @@ async def test_exception_does_not_propagate() -> None:
         patch("src.services.audit_orchestrator.StyleJudge"),
     ):
         # Should NOT raise — orchestrator catches all exceptions internally
-        await orch.run_audit(run, INSTALLATION_ID, SHA)
+        await orch.run_audit(run, REPO_FULL_NAME, INSTALLATION_ID, SHA)
 
 
 # ── file filtering ────────────────────────────────────────────────────────────
@@ -223,7 +234,7 @@ async def test_only_py_and_md_files_are_indexed() -> None:
         mock_py.return_value = []
         mock_md.return_value = []
         MockCE.return_value.extract = AsyncMock(return_value=ConventionSet())
-        await orch.run_audit(run, INSTALLATION_ID, SHA)
+        await orch.run_audit(run, REPO_FULL_NAME, INSTALLATION_ID, SHA)
 
     # Only foo.py indexed (json and image skipped; image has empty content)
     assert mock_py.call_count == 1
