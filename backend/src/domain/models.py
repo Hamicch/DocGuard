@@ -123,6 +123,27 @@ class ConventionSet(BaseModel):
     comments: str = ""
 
 
+# ── Diff analysis types ───────────────────────────────────────────────────────
+
+
+class DiffResult(BaseModel):
+    """Output of the PR diff analyzer.
+
+    Attributes:
+        changed_symbols:  Names of Python symbols (functions/classes/methods)
+                          that appear in the diff — used by the drift judge to
+                          narrow which LinkedPairs need checking.
+        new_code_blocks:  Raw added-code strings extracted per hunk — passed to
+                          the style judge for convention checking.
+        deleted_symbols:  Names of symbols present only in removed lines —
+                          useful for detecting doc references to deleted code.
+    """
+
+    changed_symbols: list[str] = Field(default_factory=list)
+    new_code_blocks: list[str] = Field(default_factory=list)
+    deleted_symbols: list[str] = Field(default_factory=list)
+
+
 # ── LLM structured output types ───────────────────────────────────────────────
 
 

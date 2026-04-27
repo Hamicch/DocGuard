@@ -82,7 +82,7 @@
   - Input: list of representative Python file contents (5–10 files)
   - Output: `ConventionSet(naming, control_flow, error_handling, imports, comments)` — Pydantic model
   - Single LLM call; result cached by `head_sha` to avoid re-running on same commit
-- [ ] `feat: PR diff analyzer` — `backend/src/services/indexing/diff_analyzer.py`
+- [x] `feat: PR diff analyzer` — `backend/src/services/indexing/diff_analyzer.py`
   - Input: raw unified diff text
   - Output: `DiffResult(changed_symbols[], new_code_blocks[], deleted_symbols[])`
   - Identifies Python symbol names from diff hunks via regex + AST
