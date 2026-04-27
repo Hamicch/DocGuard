@@ -46,7 +46,7 @@
 
 ## Phases completed (implementation status)
 
-Phases **0–4** are implemented in code. **`tasks/todo.md`** marks them with checkboxes; treat that file as the live checklist.
+Phases **0–5** are implemented in code. **`tasks/todo.md`** marks them with checkboxes; treat that file as the live checklist.
 
 ### Phase 0 — Scaffold
 - Monorepo dirs, `backend/pyproject.toml`, `uv.lock`, Ruff/Mypy/pytest config
@@ -161,14 +161,23 @@ cd backend && uv run alembic upgrade head
 
 ---
 
+### Phase 5 — LLM Judgment Layer
+- `backend/src/domain/models.py` — added `LLMTrace`, `DriftJudgment`, `StyleJudgment`
+- `backend/src/adapters/llm_client.py` — `LLMClient.chat_completion(messages, model, response_format, run_id)`; uses `AsyncOpenAI.beta.chat.completions.parse`; emits `LLMTrace` via structlog after every call; `LLMClient.from_settings()` factory
+- `backend/src/services/judgment/drift_judge.py` — `DriftJudge.judge(pair, diff_context, run_id)` + `judge_many()`; Claude Haiku default
+- `backend/src/services/judgment/style_judge.py` — `StyleJudge.judge(code_block, conventions, run_id)` + `judge_many()`; GPT-4o-mini default; skips blank blocks
+- `backend/src/services/judgment/fix_drafter.py` — `FixDrafter.enrich(judgment, run_id)` + `enrich_many()`; skips if fix already present; no mutation — returns new model instance
+- 100 unit tests total, all passing
+
+---
+
 ## Next work (pick up here)
 
-**Phase 5 — LLM Judgment Layer** (`tasks/todo.md`):
+**Phase 6 — Audit Orchestrator** (`tasks/todo.md`):
 
-- `backend/src/adapters/llm_client.py` — provider-agnostic LLM client using the **OpenAI Python SDK** pointed at OpenRouter's OpenAI-compatible API (`https://openrouter.ai/api/v1`). Switching providers is a config change only. Emits an `LLMTrace` structured log event per call (trace_id, model, tokens, cost, latency, run_id). `LLMTrace` Pydantic model to be added to `domain/models.py`.
-- `backend/src/services/judgment/drift_judge.py` — Claude Haiku; structured JSON output
-- `backend/src/services/judgment/style_judge.py` — GPT-4o-mini; structured JSON output
-- `backend/src/services/judgment/fix_drafter.py` — enriches judgments with proposed fixes
+- `backend/src/services/audit_orchestrator.py` — `run_audit(repo_full_name, pr_number, head_sha, installation_id, run_id)`; full 14-step pipeline per `tasks/todo.md`
+- `backend/src/services/comment_formatter.py` — renders findings as grouped Markdown PR comment
+- Integrate `RunRepository` + `FindingRepository` calls into orchestrator
 
 Then Phase 6 (orchestrator), etc., per `tasks/todo.md`.
 
@@ -184,4 +193,4 @@ Then Phase 6 (orchestrator), etc., per `tasks/todo.md`.
 
 ## One-line summary for another LLM
 
-> DocGuard MVP: Phases 0–4 done (FastAPI + webhook + GitHub adapter + domain + async DB + Alembic + repos + full indexing pipeline). Next: Phase 5 LLM judgment layer — OpenRouter adapter, drift judge, style judge, fix drafter. Align `IGitHubAdapter` with `GitHubAdapter` installation_id. Do not commit without user approval. Specs in `doc/` and `tasks/todo.md`.
+> DocGuard MVP: Phases 0–5 done (FastAPI + webhook + GitHub adapter + domain + async DB + Alembic + repos + full indexing pipeline + LLM judgment layer). 100 unit tests passing. Next: Phase 6 audit orchestrator. Align `IGitHubAdapter` with `GitHubAdapter` installation_id. Do not commit without user approval. Specs in `doc/` and `tasks/todo.md`.
