@@ -147,7 +147,10 @@ class AuditOrchestrator:
             # ── 3. Fetch changed files ────────────────────────────────────────
             log.info("audit.fetching_files")
             files = await self._github.get_pr_files(
-                repo_full_name, repo.pr_number, installation_id
+                repo_full_name,
+                repo.pr_number,
+                installation_id,
+                head_sha=head_sha,
             )
 
             py_files = [f for f in files if f["path"].endswith(".py") and f["content"]]

@@ -30,7 +30,7 @@ from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 from src.config import settings
-from src.domain.models import LLMTrace
+from src.domain.models import ConventionSet, LLMTrace
 
 logger = structlog.get_logger(__name__)
 
@@ -43,6 +43,22 @@ T = TypeVar("T", bound=BaseModel)
 HAIKU = "anthropic/claude-haiku-4-5"
 GPT4O_MINI = "openai/gpt-4o-mini"
 GEMINI_FLASH = "google/gemini-flash-1.5"
+
+_CONVENTION_SYSTEM_PROMPT = """\
+You infer stable Python coding conventions from several file excerpts of the same codebase.
+
+For each field, write one short phrase (not bullet lists) describing what the samples do \
+consistently. If a topic is not visible in the samples, leave that field empty.
+
+Fields:
+- naming: function / class / variable naming patterns
+- control_flow: branching, loops, early returns
+- error_handling: exceptions, result types, validation
+- imports: ordering and grouping
+- comments: docstrings and inline comment style
+
+Respond strictly with the JSON schema provided. Be concise.
+"""
 
 
 class LLMClient:
@@ -118,6 +134,29 @@ class LLMClient:
             )
 
         return parsed
+
+    async def extract_conventions(
+        self,
+        file_contents: list[str],
+        run_id: uuid.UUID | None = None,
+    ) -> ConventionSet:
+        """Infer a ``ConventionSet`` from representative Python sources."""
+        blocks: list[str] = []
+        for i, src in enumerate(file_contents, start=1):
+            blocks.append(f"### Sample {i}\n\n```python\n{src}\n```")
+        user_message = (
+            "Infer stable coding conventions across these samples.\n\n" + "\n\n".join(blocks)
+        )
+        messages = [
+            {"role": "system", "content": _CONVENTION_SYSTEM_PROMPT},
+            {"role": "user", "content": user_message},
+        ]
+        return await self.chat_completion(
+            messages=messages,
+            model=GPT4O_MINI,
+            response_format=ConventionSet,
+            run_id=run_id,
+        )
 
     def pop_run_traces(self, run_id: uuid.UUID) -> list[LLMTrace]:
         """Return and clear buffered traces for a run."""

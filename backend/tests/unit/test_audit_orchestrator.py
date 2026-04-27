@@ -129,7 +129,9 @@ async def test_run_uses_explicit_repo_full_name_not_pr_title() -> None:
         MockCE.return_value.extract = AsyncMock(return_value=ConventionSet())
         await orch.run_audit(run, REPO_FULL_NAME, INSTALLATION_ID, SHA)
 
-    github.get_pr_files.assert_awaited_once_with(REPO_FULL_NAME, run.pr_number, INSTALLATION_ID)
+    github.get_pr_files.assert_awaited_once_with(
+        REPO_FULL_NAME, run.pr_number, INSTALLATION_ID, head_sha=SHA
+    )
 
 
 @pytest.mark.asyncio
