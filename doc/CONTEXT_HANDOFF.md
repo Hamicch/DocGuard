@@ -73,7 +73,7 @@ Phases **0–7** are implemented in code. **`tasks/todo.md`** marks them with ch
   - HMAC-SHA256 (`X-Hub-Signature-256`) vs `GITHUB_WEBHOOK_SECRET`
   - Handles `pull_request` with actions `opened`, `synchronize`, `reopened`
   - Returns **202** + `{"status":"triggered","run_id":"<uuid>"}`
-  - Uses FastAPI `BackgroundTasks` to call `_trigger_audit` placeholder (logs only; **must** become SQS or async Lambda invoke before production — see `tasks/todo.md` Phase 3 note)
+  - Uses `AuditDispatcher`: `AUDIT_DISPATCH_MODE=background` schedules `run_background_audit` (creates DB run + full `AuditOrchestrator` pipeline on the API process). For long audits on Lambda, prefer `lambda_async` or `sqs` (see `backend/src/config.py`).
 - `backend/src/adapters/github.py` — `GitHubAdapter`: App JWT → installation token (cached ~50 min), PR diff, files+contents, file at ref, post/update issue comment
 - `backend/src/main.py` — includes webhook router; structlog configured at import
 
@@ -108,17 +108,14 @@ e7c620a chore: phase 0 scaffold — monorepo structure, backend, planning docs
 1. **`IGitHubAdapter` vs `GitHubAdapter` signatures**  
    `ports.py` defines methods **without** `installation_id`. `GitHubAdapter` methods **require** `installation_id: int` for auth. The class is declared as implementing the port but the signatures differ — mypy may flag this; align the port (add `installation_id` everywhere) or wrap the adapter behind a thin facade that closes over installation id from the webhook payload.
 
-2. **`RunRepository.create`**  
-   `AuditRunORM.user_id` was temporarily set from `run.repo_id` as a placeholder. The orchestrator should set **real** `user_id` (from repo row or JWT) before persist.
-
-3. **`FindingRepository` / domain `UserAction`**  
+2. **`FindingRepository` / domain `UserAction`**  
    Product DDL allows `user_action` values like `ignored` / `custom`; domain enum may be narrower — reconcile when building the findings API.
 
-4. **`tasks/progress.md`**  
+3. **`tasks/progress.md`**  
    Often empty; project rules say to append milestones when phases ship.
 
-5. **Webhook async work**  
-   `BackgroundTasks` is fine for local Docker; on Lambda it is **not** sufficient for long work — plan SQS or `InvokeFunction` Event as in `tasks/todo.md`.
+4. **Webhook async work on Lambda**  
+   `background` mode runs the full audit in-process after the response body is sent; the invocation stays alive until the pipeline finishes (watch timeout vs PR size). For isolation and scale, use `lambda_async` or `sqs` once a worker is deployed.
 
 ---
 
@@ -151,7 +148,7 @@ curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:8000/webhooks/github
   -d "$BODY"
 ```
 
-Expected: **HTTP 202** and JSON with `status` + `run_id`; logs show `webhook.pull_request.accepted` then `audit.dispatch.placeholder`.
+Expected: **HTTP 202** and JSON with `status` + `run_id`; logs show `webhook.pull_request.accepted` then `audit.started` if `AUDIT_DISPATCH_MODE=background` and a `repos` row exists for the webhook `installation.id` with matching `full_name`.
 
 **DB migrations (when `DATABASE_URL` is set):**
 
