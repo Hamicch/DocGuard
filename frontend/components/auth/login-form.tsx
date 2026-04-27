@@ -1,11 +1,28 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 
 import { createClient } from "@/lib/supabase/client";
+
+function AuthLoadingSkeleton() {
+  return (
+    <div className="space-y-4" aria-hidden>
+      <div className="h-10 w-full animate-pulse rounded-md bg-gray-100" />
+      <div className="h-10 w-full animate-pulse rounded-md bg-gray-100" />
+      <div className="h-10 w-full animate-pulse rounded-md bg-gray-100" />
+      <div className="h-9 w-full animate-pulse rounded-md bg-gray-200" />
+      <p className="text-center text-xs text-gray-400">Loading sign-in…</p>
+    </div>
+  );
+}
+
+const SupabaseAuth = dynamic(() => import("@supabase/auth-ui-react").then((mod) => mod.Auth), {
+  ssr: false,
+  loading: () => <AuthLoadingSkeleton />,
+});
 
 export function LoginForm() {
   const router = useRouter();
@@ -33,7 +50,7 @@ export function LoginForm() {
       <p className="mb-6 text-sm text-gray-500">
         Use email/password, Google, or GitHub to access your dashboard.
       </p>
-      <Auth
+      <SupabaseAuth
         supabaseClient={supabase}
         appearance={{ theme: ThemeSupa }}
         providers={["google", "github"]}
