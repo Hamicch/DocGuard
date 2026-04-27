@@ -95,11 +95,17 @@ class AuditDispatcher:
             ) from exc
 
         client = boto3.client("lambda", region_name=settings.aws_region)
-        response = client.invoke(
-            FunctionName=settings.audit_worker_lambda_name,
-            InvocationType="Event",
-            Payload=json.dumps(event.to_dict()).encode("utf-8"),
-        )
+        try:
+            response = client.invoke(
+                FunctionName=settings.audit_worker_lambda_name,
+                InvocationType="Event",
+                Payload=json.dumps(event.to_dict()).encode("utf-8"),
+            )
+        except Exception as exc:
+            raise AuditRunError(
+                f"Lambda async invoke raised: {type(exc).__name__}: {exc}", run_id=event.run_id
+            ) from exc
+
         status_code = int(response.get("StatusCode", 0))
         if status_code != 202:
             raise AuditRunError(
@@ -118,10 +124,16 @@ class AuditDispatcher:
             raise AuditRunError("boto3 is required for sqs dispatch mode", run_id=event.run_id) from exc
 
         client = boto3.client("sqs", region_name=settings.aws_region)
-        response = client.send_message(
-            QueueUrl=settings.audit_sqs_queue_url,
-            MessageBody=json.dumps(event.to_dict()),
-        )
+        try:
+            response = client.send_message(
+                QueueUrl=settings.audit_sqs_queue_url,
+                MessageBody=json.dumps(event.to_dict()),
+            )
+        except Exception as exc:
+            raise AuditRunError(
+                f"SQS send_message raised: {type(exc).__name__}: {exc}", run_id=event.run_id
+            ) from exc
+
         logger.info(
             "audit.dispatch.sqs",
             **event.to_dict(),
