@@ -84,7 +84,7 @@ class LLMClient:
             return None
 
         try:
-            from langfuse import Langfuse  # type: ignore[import-untyped]
+            from langfuse import Langfuse
         except ImportError as exc:
             logger.warning("langfuse.import_failed", error=str(exc))
             return None
