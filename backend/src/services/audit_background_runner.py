@@ -60,7 +60,7 @@ async def run_background_audit(event: AuditDispatchEvent) -> None:
                 id=run_uuid,
                 repo_id=repo.id,
                 pr_number=event.pr_number,
-                pr_title="",
+                pr_title=event.pr_title,
                 status=AuditStatus.pending,
             )
             await run_repo.create(pending)

@@ -9,9 +9,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import BaseModel
 
-from src.adapters.llm_client import HAIKU, LLMClient
-from src.domain.models import LLMTrace
-
+from src.adapters.llm_client import GPT4O_MINI, HAIKU, LLMClient
+from src.domain.models import ConventionSet
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
 
@@ -82,6 +81,27 @@ async def test_passes_correct_model_and_messages() -> None:
     assert call_kwargs["model"] == HAIKU
     assert call_kwargs["messages"] == messages
     assert call_kwargs["response_format"] is EchoSchema
+
+
+@pytest.mark.asyncio
+async def test_extract_conventions_uses_chat_completion() -> None:
+    client, mock_inner = make_client()
+    expected = ConventionSet(
+        naming="snake_case",
+        control_flow="",
+        error_handling="",
+        imports="",
+        comments="",
+    )
+    mock_inner.beta.chat.completions.parse.return_value = make_openai_response(expected)
+
+    result = await client.extract_conventions(["def foo(): pass"])
+
+    assert result is expected
+    call_kwargs = mock_inner.beta.chat.completions.parse.call_args.kwargs
+    assert call_kwargs["model"] == GPT4O_MINI
+    assert call_kwargs["response_format"] is ConventionSet
+    assert "def foo(): pass" in call_kwargs["messages"][-1]["content"]
 
 
 # ── LLMTrace logging ──────────────────────────────────────────────────────────

@@ -129,7 +129,12 @@ class GitHubAdapter(IGitHubAdapter):
         return resp.text
 
     async def get_pr_files(
-        self, repo_full_name: str, pr_number: int, installation_id: int
+        self,
+        repo_full_name: str,
+        pr_number: int,
+        installation_id: int,
+        *,
+        head_sha: str,
     ) -> list[dict[str, str]]:
         resp = await self._gh(
             "GET",
@@ -141,10 +146,9 @@ class GitHubAdapter(IGitHubAdapter):
         results: list[dict[str, str]] = []
         for f in files_meta:
             path: str = f["filename"]
-            ref: str = f.get("sha", "HEAD")
             try:
                 content = await self.get_file_contents(
-                    repo_full_name, path, ref, installation_id
+                    repo_full_name, path, head_sha, installation_id
                 )
             except GitHubAPIError:
                 content = ""  # deleted or binary file — skip content
