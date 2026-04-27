@@ -91,3 +91,19 @@ def format_comment(findings: list[Finding]) -> str:
             parts.append("")  # blank line between findings
 
     return "\n".join(parts).strip()
+
+
+def get_severity_score(findings: list[Finding]) -> int:
+    """Return a numeric severity score for a list of findings.
+
+    High findings contribute 10 points, medium 5, low 1.
+    """
+    score = 0
+    for f in findings:
+        if f.severity == Severity.high:
+            score += 10
+        elif f.severity == Severity.medium:
+            score += 5
+        else:
+            score += 1
+    return score
