@@ -23,8 +23,7 @@ from __future__ import annotations
 import time
 import uuid
 from collections import defaultdict
-from contextlib import AbstractContextManager, nullcontext
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar
 
 import structlog
 from openai import AsyncOpenAI
@@ -97,36 +96,29 @@ class LLMClient:
             environment=settings.environment,
         )
 
-    def _start_langfuse_generation(
+    def _begin_langfuse_generation(
         self,
         messages: list[dict[str, str]],
         model: str,
         response_format: type[T],
         run_id: uuid.UUID | None,
-    ) -> AbstractContextManager[Any | None]:
+    ) -> Any | None:
+        """Open a Langfuse generation under a per-run trace. Returns None when tracing is off."""
         if self._langfuse is None:
-            return nullcontext(None)
-
-        metadata: dict[str, str] = {"response_format": response_format.__name__}
-        trace_context: dict[str, str] | None = None
-
-        if run_id is not None:
-            metadata["run_id"] = str(run_id)
-            trace_context = {
-                "trace_id": self._langfuse.create_trace_id(seed=str(run_id)),
-            }
+            return None
 
         try:
-            return cast(
-                AbstractContextManager[Any | None],
-                self._langfuse.start_as_current_observation(
-                    name=response_format.__name__,
-                    as_type="generation",
-                    model=model,
-                    input={"messages": messages},
-                    metadata=metadata,
-                    trace_context=trace_context,
-                ),
+            trace_id = str(run_id) if run_id is not None else None
+            trace = self._langfuse.trace(
+                id=trace_id,
+                name="audit_run",
+                metadata={"run_id": trace_id},
+            )
+            return trace.generation(
+                name=response_format.__name__,
+                model=model,
+                input={"messages": messages},
+                metadata={"response_format": response_format.__name__},
             )
         except Exception as exc:
             logger.warning(
@@ -135,7 +127,7 @@ class LLMClient:
                 model=model,
                 run_id=str(run_id) if run_id is not None else None,
             )
-            return nullcontext(None)
+            return None
 
     def _extract_cost_usd(self, response: Any) -> float:
         candidates = [
@@ -205,58 +197,56 @@ class LLMClient:
             ValueError: If the response cannot be parsed into *response_format*.
         """
         start = time.monotonic()
+        generation = self._begin_langfuse_generation(messages, model, response_format, run_id)
 
-        with self._start_langfuse_generation(messages, model, response_format, run_id) as generation:
-            response = await self._client.beta.chat.completions.parse(
-                model=model,
-                messages=messages,  # type: ignore[arg-type]
-                response_format=response_format,
+        response = await self._client.beta.chat.completions.parse(
+            model=model,
+            messages=messages,  # type: ignore[arg-type]
+            response_format=response_format,
+        )
+
+        latency_ms = (time.monotonic() - start) * 1000
+        usage = response.usage
+        prompt_tokens = usage.prompt_tokens if usage else 0
+        completion_tokens = usage.completion_tokens if usage else 0
+        total_tokens = (
+            getattr(usage, "total_tokens", None) if usage is not None else None
+        ) or (prompt_tokens + completion_tokens)
+        cost_usd = self._extract_cost_usd(response)
+
+        llm_trace = LLMTrace(
+            trace_id=response.id,
+            run_id=run_id,
+            model=model,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            cost_usd=cost_usd,
+            latency_ms=round(latency_ms, 2),
+        )
+        if run_id is not None:
+            self._traces_by_run[run_id].append(llm_trace)
+        logger.info("llm.trace", **llm_trace.model_dump(mode="json"))
+
+        parsed = response.choices[0].message.parsed
+        if parsed is None:
+            raise ValueError(
+                f"LLM returned no parsed content for model {model}. "
+                "Check that the response_format schema is correct."
             )
 
-            latency_ms = (time.monotonic() - start) * 1000
-            usage = response.usage
-            prompt_tokens = usage.prompt_tokens if usage else 0
-            completion_tokens = usage.completion_tokens if usage else 0
-            total_tokens = (
-                getattr(usage, "total_tokens", None) if usage is not None else None
-            ) or (prompt_tokens + completion_tokens)
-            cost_usd = self._extract_cost_usd(response)
-
-            trace = LLMTrace(
-                trace_id=response.id,
-                run_id=run_id,
-                model=model,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
-                cost_usd=cost_usd,
-                latency_ms=round(latency_ms, 2),
+        if generation is not None:
+            generation.end(
+                output=parsed.model_dump(mode="json"),
+                usage_details={
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "total_tokens": total_tokens,
+                },
+                cost_details={"total_cost": cost_usd} if cost_usd > 0 else None,
             )
-            if run_id is not None:
-                self._traces_by_run[run_id].append(trace)
-            logger.info("llm.trace", **trace.model_dump(mode="json"))
+            self._flush_langfuse()
 
-            parsed = response.choices[0].message.parsed
-            if parsed is None:
-                raise ValueError(
-                    f"LLM returned no parsed content for model {model}. "
-                    "Check that the response_format schema is correct."
-                )
-
-            if generation is not None:
-                generation.update(
-                    output=parsed.model_dump(mode="json"),
-                    usage_details={
-                        "prompt_tokens": prompt_tokens,
-                        "completion_tokens": completion_tokens,
-                        "total_tokens": total_tokens,
-                    },
-                    cost_details={"total_cost": cost_usd} if cost_usd > 0 else None,
-                )
-
-            if run_id is None:
-                self._flush_langfuse()
-
-            return parsed
+        return parsed
 
     async def extract_conventions(
         self,
