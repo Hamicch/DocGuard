@@ -84,7 +84,7 @@ class LLMClient:
             return None
 
         try:
-            from langfuse import Langfuse
+            from langfuse import Langfuse  # type: ignore[import-untyped]
         except ImportError as exc:
             logger.warning("langfuse.import_failed", error=str(exc))
             return None
@@ -102,11 +102,13 @@ class LLMClient:
         model: str,
         response_format: type[T],
         run_id: uuid.UUID | None,
+        span_name: str | None,
     ) -> Any | None:
         """Open a Langfuse generation under a per-run trace. Returns None when tracing is off."""
         if self._langfuse is None:
             return None
 
+        name = span_name or response_format.__name__
         try:
             trace_id = str(run_id) if run_id is not None else None
             trace = self._langfuse.trace(
@@ -115,7 +117,7 @@ class LLMClient:
                 metadata={"run_id": trace_id},
             )
             return trace.generation(
-                name=response_format.__name__,
+                name=name,
                 model=model,
                 input={"messages": messages},
                 metadata={"response_format": response_format.__name__},
@@ -177,6 +179,7 @@ class LLMClient:
         model: str,
         response_format: type[T],
         run_id: uuid.UUID | None = None,
+        span_name: str | None = None,
     ) -> T:
         """Call the LLM and return a parsed Pydantic model.
 
@@ -197,7 +200,7 @@ class LLMClient:
             ValueError: If the response cannot be parsed into *response_format*.
         """
         start = time.monotonic()
-        generation = self._begin_langfuse_generation(messages, model, response_format, run_id)
+        generation = self._begin_langfuse_generation(messages, model, response_format, run_id, span_name)
 
         response = await self._client.beta.chat.completions.parse(
             model=model,
@@ -269,6 +272,7 @@ class LLMClient:
             model=GPT4O_MINI,
             response_format=ConventionSet,
             run_id=run_id,
+            span_name="convention_extractor",
         )
 
     def pop_run_traces(self, run_id: uuid.UUID) -> list[LLMTrace]:

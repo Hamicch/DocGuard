@@ -102,6 +102,7 @@ class StyleJudge:
             model=self._model,
             response_format=StyleJudgment,
             run_id=run_id,
+            span_name="style_judge",
         )
 
         logger.info(
