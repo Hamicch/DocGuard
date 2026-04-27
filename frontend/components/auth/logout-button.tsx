@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { UniversalScreenLoader } from "@/components/ui/universal-screen-loader";
 import { createClient } from "@/lib/supabase/client";
 
 export function LogoutButton() {
@@ -22,13 +23,18 @@ export function LogoutButton() {
   };
 
   return (
-    <button
-      type="button"
-      onClick={onLogout}
-      disabled={loading}
-      className="rounded border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
-    >
-      {loading ? "Signing out..." : "Log out"}
-    </button>
+    <div className="flex items-center gap-3">
+      {loading ? (
+        <UniversalScreenLoader variant="inline" message="Signing out…" spinnerClassName="h-4 w-4" />
+      ) : null}
+      <button
+        type="button"
+        onClick={onLogout}
+        disabled={loading}
+        className="rounded border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
+      >
+        Log out
+      </button>
+    </div>
   );
 }

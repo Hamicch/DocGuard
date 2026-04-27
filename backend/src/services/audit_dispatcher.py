@@ -60,17 +60,16 @@ class AuditDispatchEvent:
         }
 
 
-async def _background_placeholder(event: AuditDispatchEvent) -> None:
-    logger.info("audit.dispatch.background", **event.to_dict())
-
-
 class AuditDispatcher:
     """Dispatches webhook-triggered audits according to environment strategy."""
 
     async def dispatch(self, event: AuditDispatchEvent, background_tasks: BackgroundTasks) -> None:
         mode = settings.audit_dispatch_mode.strip().lower()
         if mode == "background":
-            background_tasks.add_task(_background_placeholder, event)
+            # Lazy import avoids circular import with audit_background_runner.
+            from src.services.audit_background_runner import run_background_audit
+
+            background_tasks.add_task(run_background_audit, event)
             return
         if mode == "lambda_async":
             self._dispatch_lambda_async(event)
