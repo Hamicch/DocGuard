@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { MissingSupabaseEnv } from "@/components/auth/missing-supabase-env";
@@ -26,7 +27,12 @@ export default async function SettingsPage() {
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Settings</h1>
+        <div className="flex items-center gap-3">
+          <Link href="/runs" className="cursor-pointer text-sm text-gray-500 hover:text-gray-900">
+            ← Back
+          </Link>
+          <h1 className="text-2xl font-semibold">Settings</h1>
+        </div>
         <LogoutButton />
       </header>
       <ConnectRepoForm />

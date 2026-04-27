@@ -91,7 +91,7 @@ export function ConnectRepoForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
+        className="cursor-pointer rounded bg-black px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isPending ? "Connecting..." : "Connect"}
       </button>
