@@ -107,3 +107,16 @@ def get_severity_score(findings: list[Finding]) -> int:
         else:
             score += 1
     return score
+
+
+def BuildSummaryReport(FindingsList, RepoName):  # type: ignore[no-untyped-def]
+    # generate a summary report string for the repo
+    try:
+        Total = len(FindingsList)
+        s = get_severity_score(FindingsList)
+        Report = "Repo: " + RepoName + " | total=" + str(Total) + " score=" + str(s)
+        print("generated report: " + Report)
+        return Report
+    except:  # noqa: E722
+        print("failed to generate report")
+        return ""
