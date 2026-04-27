@@ -64,7 +64,7 @@
 
 ---
 
-## Phase 4 — Agent Pipeline: Indexing
+## Phase 4 — Agent Pipeline: Indexing ✅
 
 - [x] `feat: python AST indexer` — `backend/src/services/indexing/ast_indexer.py`
   - Input: file path + source text
@@ -89,7 +89,7 @@
 
 ---
 
-## Phase 5 — LLM Judgment Layer
+## Phase 5 — LLM Judgment Layer ✅
 
 - [x] `feat: LLM client` — `backend/src/adapters/llm_client.py`
   - Provider-agnostic: uses the **OpenAI Python SDK** pointed at `https://openrouter.ai/api/v1`
@@ -118,7 +118,7 @@
 
 ---
 
-## Phase 6 — Audit Orchestrator
+## Phase 6 — Audit Orchestrator ✅
 
 - [x] `feat: audit orchestrator` — `backend/src/services/audit_orchestrator.py`
   - `run_audit(repo_full_name, pr_number, head_sha, installation_id, run_id)`
@@ -168,32 +168,33 @@
 
 ---
 
-## Phase 8 — Frontend Dashboard
+## Phase 8 — Frontend Dashboard ✅
 
-- [ ] `feat: next.js init` — `npx create-next-app@latest frontend` with TypeScript, Tailwind, App Router; add shadcn/ui init
-- [ ] `feat: supabase auth setup` — `@supabase/ssr` client helpers; `middleware.ts` session refresh; env vars `NEXT_PUBLIC_SUPABASE_URL` + `ANON_KEY`
-- [ ] `feat: login page` — `/login` — email/password + GitHub OAuth via Supabase Auth UI; redirect to `/runs` on success
-- [ ] `feat: runs list view` — `/runs`
+- [x] `feat: next.js init` — `npx create-next-app@latest frontend` with TypeScript, Tailwind, App Router; add shadcn/ui init
+- [x] `feat: supabase auth setup` — `@supabase/ssr` client helpers; `middleware.ts` session refresh; env vars `NEXT_PUBLIC_SUPABASE_URL` + `ANON_KEY`
+- [x] `feat: login page` — `/login` — email/password + GitHub OAuth via Supabase Auth UI; redirect to `/runs` on success
+- [x] `feat: runs list view` — `/runs`
   - Server Component; fetches `GET /api/runs` with Supabase JWT
   - Table: PR title, repo, status badge, finding counts, date, link to detail
   - Empty state for new users
-- [ ] `feat: finding detail view` — `/runs/[id]`
+- [x] `feat: finding detail view` — `/runs/[id]`
   - Finding cards grouped by type
   - Each card: current code snippet, current doc snippet (drift only), proposed fix, reasoning, severity badge
   - Accept / Ignore / Custom action buttons → `POST /api/findings/{id}/action`
-- [ ] `feat: repo connect flow` — `/settings` — input for `owner/repo` + installation ID; calls `POST /api/repos`
+- [x] `feat: repo connect flow` — `/settings` — input for `owner/repo` + installation ID; calls `POST /api/repos`
 
 ---
 
 ## Phase 9 — Infrastructure (AWS Lambda)
 
-- [ ] `infra: terraform API Gateway` — `infra/apigateway.tf` — HTTP API, routes to Lambda, `$default` stage, throttling as needed
-- [ ] `infra: terraform Lambda` — `infra/lambda.tf` — function (zip or container image), IAM execution role, **function URL optional** (prefer API Gateway for GitHub webhook + JWT routes on same host)
+- [x] `infra: terraform API Gateway` — `infra/apigateway.tf` — HTTP API, routes to Lambda, `$default` stage, throttling as needed
+- [x] `infra: terraform Lambda` — `infra/lambda.tf` — function (zip or container image), IAM execution role, **function URL optional** (prefer API Gateway for GitHub webhook + JWT routes on same host)
   - Runtime Python 3.12; memory and timeout sized for PR audit (see product doc 60s target; add **SQS + worker** or **async Lambda invoke** if you approach **15 min** limit)
   - **Secrets: Lambda environment variables only** (MVP). Set values from Terraform `variables` / `.tfvars` supplied at apply time or from CI (e.g. GitHub Actions secrets → `terraform apply` `-var`). **Do not use AWS Secrets Manager** for this phase unless you explicitly add it later.
 - [ ] `infra: terraform ECR` (optional) — `infra/ecr.tf` — only if Lambda uses a **container image**; lifecycle policy (keep last N)
-- [ ] `infra: terraform CloudWatch` — `infra/observability.tf` — log group for Lambda, metric filters / alarms for errors + LLM cost signals
-- [ ] `infra: terraform variables + outputs` — `infra/variables.tf` + `infra/outputs.tf` — API Gateway base URL, Lambda name/ARN, optional ECR URL
+- [x] `infra: terraform CloudWatch` — `infra/observability.tf` — log group for Lambda, metric filters / alarms for errors + LLM cost signals
+- [x] `infra: terraform variables + outputs` — `infra/variables.tf` + `infra/outputs.tf` — API Gateway base URL, Lambda name/ARN, optional ECR URL
+- [x] `docs: infra deploy + destroy docs` — `infra/README.md` + root `README.md` + `infra/scripts/terraform-destroy.sh`
 
 ---
 
@@ -250,7 +251,7 @@
 
 > Move items here when actively working on them (one at a time).
 
-_None — ready to start Phase 0._
+- `Phase 9`: pay down Lambda-safe webhook dispatch debt (`BackgroundTasks` -> SQS or async Lambda invoke)
 
 ---
 
@@ -258,4 +259,13 @@ _None — ready to start Phase 0._
 
 > Add a summary note here each time a phase ships.
 
-_No phases shipped yet._
+- 2026-04-27 — Phase 0 shipped: project scaffold, backend runtime, Docker/dev environment, config loading.
+- 2026-04-27 — Phase 1 shipped: domain models, exceptions, and repository/adapter ports.
+- 2026-04-27 — Phase 2 shipped: SQLAlchemy async stack, ORM, Alembic, repository implementations.
+- 2026-04-27 — Phase 3 shipped: GitHub webhook endpoint + GitHub App API adapter with token caching.
+- 2026-04-27 — Phase 4 shipped: indexing pipeline (AST, Markdown, linker, convention extractor, diff analyzer).
+- 2026-04-27 — Phase 5 shipped: provider-agnostic LLM client + drift/style judges + fix drafter.
+- 2026-04-27 — Phase 6 shipped: audit orchestrator, PR comment formatter, run persistence integration.
+- 2026-04-27 — Phase 7 shipped: auth middleware + run/finding/repo API routes + app wiring.
+- 2026-04-27 — Phase 8 shipped: Next.js dashboard scaffold, Supabase auth wiring, login/runs/detail/settings pages, repo connect form.
+- 2026-04-27 — Phase 9 started: Terraform baseline added (Lambda, API Gateway, CloudWatch alarms, variables/outputs), plus destroy script and infra docs.

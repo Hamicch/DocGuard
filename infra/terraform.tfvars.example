@@ -1,0 +1,23 @@
+project_name = "docguard"
+environment  = "dev"
+aws_region   = "us-east-1"
+
+# Built deployment artifact for Lambda zip deploy.
+lambda_zip_path = "../backend/dist/lambda.zip"
+
+supabase_url              = "https://your-project.supabase.co"
+supabase_anon_key         = "your-anon-key"
+supabase_service_role_key = "your-service-role-key"
+supabase_jwt_secret       = "your-jwt-secret"
+
+database_url = "postgresql+asyncpg://user:pass@host:5432/postgres"
+
+github_app_id          = "123456"
+github_app_private_key = "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+github_webhook_secret  = "your-webhook-secret"
+
+llm_api_key  = "your-openrouter-or-openai-key"
+llm_base_url = "https://openrouter.ai/api/v1"
+
+# Optional
+# alarm_topic_arn = "arn:aws:sns:us-east-1:123456789012:ops-alerts"

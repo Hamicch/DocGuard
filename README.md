@@ -29,9 +29,30 @@ cp backend/.env.example backend/.env   # fill in secrets
 docker compose up
 ```
 
+## Infrastructure (Phase 9)
+
+Terraform scaffolding for AWS Lambda + API Gateway now lives in `infra/`.
+
+```bash
+cd infra
+cp terraform.tfvars.example terraform.tfvars
+# fill values
+terraform init
+terraform plan -var-file="terraform.tfvars"
+terraform apply -var-file="terraform.tfvars"
+```
+
+Safe teardown helper:
+
+```bash
+cd infra
+./scripts/terraform-destroy.sh
+```
+
 ## Documentation
 
-- [Product spec](PRODUCT_DOCUMENT.md)
-- [Implementation guide](IMPLEMENTATION_GUIDE.md)
+- [Product spec](doc/PRODUCT_DOCUMENT.md)
+- [Implementation guide](doc/IMPLEMENTATION_GUIDE.md)
 - [Architecture diagram](architecture/README.md)
+- [Infrastructure docs](infra/README.md)
 - [Task board](tasks/todo.md)

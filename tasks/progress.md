@@ -27,3 +27,9 @@ Async SQLAlchemy engine + session factory; `RepoORM`, `AuditRunORM`, `FindingORM
 
 ## Phase 7 — API Layer ✅ (shipped 2026-04-27)
 Supabase JWT auth middleware (`python-jose` HS256, `sub` → `uuid.UUID`); `GET /api/runs` (paginated), `GET /api/runs/{id}`; `POST /api/findings/{id}/action` (accepted/ignored/custom); `GET /api/repos`, `POST /api/repos`; CORS + lifespan in `main.py`; `UserAction` extended with `ignored`/`custom`; `list_by_user` added to `RunRepository`. 123 unit tests, mypy clean.
+
+## Phase 8 — Frontend Dashboard ✅ (shipped 2026-04-27)
+Manual Next.js 15 scaffold (TypeScript + Tailwind + App Router + shadcn baseline), Supabase SSR/auth helpers (`lib/supabase/{client,server,middleware}.ts`, `middleware.ts`), and dashboard pages: `/login`, `/runs`, `/runs/[id]`, `/settings`. Added typed backend API client (`lib/api.ts`), finding action controls, repo connect form, and `frontend/.env.local.example`. Frontend lint and production build pass.
+
+## Phase 9 — Infrastructure (started 2026-04-27)
+Terraform baseline scaffolded for AWS deployment: provider/version pinning, Lambda function + IAM role + env variable wiring, HTTP API Gateway proxy integration, CloudWatch log group and alarms, and outputs (`api_gateway_url`, Lambda identifiers). Added `infra/terraform.tfvars.example`, `infra/README.md`, and a guarded destroy helper script at `infra/scripts/terraform-destroy.sh`.
