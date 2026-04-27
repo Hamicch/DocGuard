@@ -31,7 +31,7 @@ export function LogoutButton() {
         type="button"
         onClick={onLogout}
         disabled={loading}
-        className="rounded border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
+        className="cursor-pointer rounded border px-3 py-1 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         Log out
       </button>
