@@ -46,7 +46,7 @@
 
 ## Phases completed (implementation status)
 
-Phases **0–5** are implemented in code. **`tasks/todo.md`** marks them with checkboxes; treat that file as the live checklist.
+Phases **0–6** are implemented in code. **`tasks/todo.md`** marks them with checkboxes; treat that file as the live checklist.
 
 ### Phase 0 — Scaffold
 - Monorepo dirs, `backend/pyproject.toml`, `uv.lock`, Ruff/Mypy/pytest config
@@ -171,13 +171,24 @@ cd backend && uv run alembic upgrade head
 
 ---
 
+### Phase 6 — Audit Orchestrator
+- `backend/src/domain/ports.py` — `IGitHubAdapter` updated: `installation_id` added to all methods (aligns port with `GitHubAdapter`); `IRunRepository.finalize_run()` added
+- `backend/src/repositories/run_repository.py` — `finalize_run()` implemented: updates status, counts, cost, comment_id, duration, finished_at
+- `backend/src/services/comment_formatter.py` — `format_comment(findings)` renders grouped Markdown (drift / style / convention); severity badges; proposed fix blocks
+- `backend/src/services/audit_orchestrator.py` — `AuditOrchestrator.run_audit(run, installation_id, head_sha)`: full 14-step pipeline; all deps injected; exception → `failed` status; file filtering (`.py`/`.md` only)
+- 123 unit tests total, all passing
+- Active tech debt tracked in `tasks/tech_debt.md`
+
+---
+
 ## Next work (pick up here)
 
-**Phase 6 — Audit Orchestrator** (`tasks/todo.md`):
+**Phase 7 — API Layer** (`tasks/todo.md`):
 
-- `backend/src/services/audit_orchestrator.py` — `run_audit(repo_full_name, pr_number, head_sha, installation_id, run_id)`; full 14-step pipeline per `tasks/todo.md`
-- `backend/src/services/comment_formatter.py` — renders findings as grouped Markdown PR comment
-- Integrate `RunRepository` + `FindingRepository` calls into orchestrator
+- Supabase JWT middleware (`backend/src/api/middleware/auth.py`)
+- `GET /api/runs`, `GET /api/runs/{id}`, `POST /api/findings/{id}/action`
+- `GET /api/repos`, `POST /api/repos`
+- Wire `RepoRepository.get_by_installation()` in webhook handler to resolve `repo_full_name` properly (resolves `pr_title` overloading tech debt)
 
 Then Phase 6 (orchestrator), etc., per `tasks/todo.md`.
 
@@ -193,4 +204,4 @@ Then Phase 6 (orchestrator), etc., per `tasks/todo.md`.
 
 ## One-line summary for another LLM
 
-> DocGuard MVP: Phases 0–5 done (FastAPI + webhook + GitHub adapter + domain + async DB + Alembic + repos + full indexing pipeline + LLM judgment layer). 100 unit tests passing. Next: Phase 6 audit orchestrator. Align `IGitHubAdapter` with `GitHubAdapter` installation_id. Do not commit without user approval. Specs in `doc/` and `tasks/todo.md`.
+> DocGuard MVP: Phases 0–6 done (FastAPI + webhook + GitHub adapter + domain + async DB + Alembic + repos + full indexing pipeline + LLM judgment layer). 123 unit tests passing. Next: Phase 7 API layer. Tech debt tracked in tasks/tech_debt.md. Align `IGitHubAdapter` with `GitHubAdapter` installation_id. Do not commit without user approval. Specs in `doc/` and `tasks/todo.md`.
