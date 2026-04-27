@@ -34,3 +34,6 @@ infra/.terraform.lock.hcl
 node_modules/
 frontend/.next/
 frontend/out/
+
+# Claude
+.claude/

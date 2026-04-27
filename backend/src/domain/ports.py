@@ -18,30 +18,32 @@ from src.domain.models import (
 
 class IGitHubAdapter(ABC):
     @abstractmethod
-    async def get_pr_diff(self, repo_full_name: str, pr_number: int) -> str:
+    async def get_pr_diff(
+        self, repo_full_name: str, pr_number: int, installation_id: int
+    ) -> str:
         """Return the raw unified diff text for a pull request."""
 
     @abstractmethod
     async def get_pr_files(
-        self, repo_full_name: str, pr_number: int
+        self, repo_full_name: str, pr_number: int, installation_id: int
     ) -> list[dict[str, str]]:
         """Return changed files: [{"path": ..., "content": ...}, ...]"""
 
     @abstractmethod
     async def get_file_contents(
-        self, repo_full_name: str, path: str, ref: str
+        self, repo_full_name: str, path: str, ref: str, installation_id: int
     ) -> str:
         """Return file content at a specific commit ref."""
 
     @abstractmethod
     async def post_pr_comment(
-        self, repo_full_name: str, pr_number: int, body: str
+        self, repo_full_name: str, pr_number: int, body: str, installation_id: int
     ) -> int:
         """Post a comment on a PR and return the GitHub comment ID."""
 
     @abstractmethod
     async def update_pr_comment(
-        self, repo_full_name: str, comment_id: int, body: str
+        self, repo_full_name: str, comment_id: int, body: str, installation_id: int
     ) -> None:
         """Update an existing PR comment."""
 
@@ -102,6 +104,23 @@ class IRunRepository(ABC):
         *,
         error: str | None = None,
     ) -> None: ...
+
+    @abstractmethod
+    async def finalize_run(
+        self,
+        run_id: uuid.UUID,
+        *,
+        status: AuditStatus,
+        finding_count: int,
+        drift_count: int,
+        style_count: int,
+        cost_usd: float,
+        duration_ms: int,
+        comment_id: int | None = None,
+        error: str | None = None,
+    ) -> None:
+        """Update run with final counts, cost, comment ID, and status."""
+        ...
 
     @abstractmethod
     async def get_by_id(self, run_id: uuid.UUID) -> AuditRun | None: ...

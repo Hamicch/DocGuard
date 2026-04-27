@@ -78,6 +78,43 @@ class RunRepository(IRunRepository):
         except Exception as exc:
             raise RepositoryError(f"Failed to update run status: {exc}") from exc
 
+    async def finalize_run(
+        self,
+        run_id: uuid.UUID,
+        *,
+        status: AuditStatus,
+        finding_count: int,
+        drift_count: int,
+        style_count: int,
+        cost_usd: float,
+        duration_ms: int,
+        comment_id: int | None = None,
+        error: str | None = None,
+    ) -> None:
+        try:
+            result = await self._session.execute(
+                select(AuditRunORM).where(AuditRunORM.id == run_id)
+            )
+            row = result.scalar_one_or_none()
+            if row is None:
+                raise RepositoryError(f"AuditRun {run_id} not found")
+            row.status = status.value
+            row.total_findings = finding_count
+            row.doc_drift_count = drift_count
+            row.style_violation_count = style_count
+            row.cost_estimate_usd = cost_usd
+            row.duration_ms = duration_ms
+            row.finished_at = datetime.utcnow()
+            if comment_id is not None:
+                row.pr_comment_id = comment_id
+            if error:
+                row.error_message = error
+            await self._session.flush()
+        except RepositoryError:
+            raise
+        except Exception as exc:
+            raise RepositoryError(f"Failed to finalize run {run_id}: {exc}") from exc
+
     async def get_by_id(self, run_id: uuid.UUID) -> AuditRun | None:
         try:
             result = await self._session.execute(

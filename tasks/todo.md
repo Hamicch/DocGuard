@@ -120,7 +120,7 @@
 
 ## Phase 6 — Audit Orchestrator
 
-- [ ] `feat: audit orchestrator` — `backend/src/services/audit_orchestrator.py`
+- [x] `feat: audit orchestrator` — `backend/src/services/audit_orchestrator.py`
   - `run_audit(repo_full_name, pr_number, head_sha, installation_id, run_id)`
   - **Canonical pipeline** (same order as `IMPLEMENTATION_GUIDE.md` § Core Service Logic; GitHub API only, no clone):
     1. Create DB run row (`running`, timestamps, PR metadata).
@@ -139,12 +139,12 @@
     14. Finalize run (`completed`, counts, `pr_comment_id`, duration) or `failed` with `error_message`.
   - Catches + logs exceptions → sets status `failed`
   - **Local / Fargate-style**: can use in-process `asyncio.Task`. **Lambda**: implement as **SQS consumer** or **second Lambda** invoked asynchronously from the webhook handler (see Phase 3)
-- [ ] `feat: PR comment formatter` — `backend/src/services/comment_formatter.py`
+- [x] `feat: PR comment formatter` — `backend/src/services/comment_formatter.py`
   - Renders findings as a single Markdown comment
   - Grouped: Documentation Drift / Style Violations / Convention Violations
   - Each finding: file path, line, description, proposed fix, severity badge
   - Includes summary header: `N findings (H high, M medium, L low)`
-- [ ] `feat: run persistence` — integrate `RunRepository` + `FindingRepository` calls into orchestrator
+- [x] `feat: run persistence` — integrate `RunRepository` + `FindingRepository` calls into orchestrator
   - `create_run()` before starting
   - `bulk_create_findings()` after judgment
   - `update_run(status, duration_ms, cost, counts, comment_id)` on completion
