@@ -74,7 +74,7 @@
   - Input: file path + markdown text
   - Output: list of `DocSection(heading, body, code_blocks[], inline_refs[])`
   - Uses `markdown-it-py`; extracts inline `` `code` `` references
-- [ ] `feat: doc-code linker` — `backend/src/services/indexing/linker.py`
+- [x] `feat: doc-code linker` — `backend/src/services/indexing/linker.py`
   - Input: list of `DocSection[]` + `CodeSymbol[]`
   - Output: list of `LinkedPair(doc_section, code_symbol, confidence)`
   - Strategy: exact name match first; substring match fallback
