@@ -46,7 +46,7 @@
 
 ## Phases completed (implementation status)
 
-Phases **0–3** are implemented in code. **`tasks/todo.md`** marks them with checkboxes; treat that file as the live checklist.
+Phases **0–4** are implemented in code. **`tasks/todo.md`** marks them with checkboxes; treat that file as the live checklist.
 
 ### Phase 0 — Scaffold
 - Monorepo dirs, `backend/pyproject.toml`, `uv.lock`, Ruff/Mypy/pytest config
@@ -76,6 +76,16 @@ Phases **0–3** are implemented in code. **`tasks/todo.md`** marks them with ch
   - Uses FastAPI `BackgroundTasks` to call `_trigger_audit` placeholder (logs only; **must** become SQS or async Lambda invoke before production — see `tasks/todo.md` Phase 3 note)
 - `backend/src/adapters/github.py` — `GitHubAdapter`: App JWT → installation token (cached ~50 min), PR diff, files+contents, file at ref, post/update issue comment
 - `backend/src/main.py` — includes webhook router; structlog configured at import
+
+### Phase 4 — Agent Pipeline: Indexing
+- `backend/src/domain/models.py` — added `ConventionSet`, `DiffResult` pipeline types
+- `backend/src/domain/ports.py` — added `ILLMAdapter.extract_conventions()`
+- `backend/src/services/indexing/ast_indexer.py` — `index_python(file_path, source) → list[CodeSymbol]`; stdlib `ast` only; graceful `SyntaxError` handling
+- `backend/src/services/indexing/md_indexer.py` — `index_markdown(file_path, source) → list[DocSection]`; uses `markdown-it-py`; one section per heading; headingless content discarded
+- `backend/src/services/indexing/linker.py` — `link(sections, symbols) → list[LinkedPair]`; confidence scoring: exact heading (1.0), inline ref (0.9), whole-word body (0.7), substring (0.5); pairs below 0.5 dropped
+- `backend/src/services/indexing/convention_extractor.py` — `ConventionExtractor(llm).extract(head_sha, files)`; in-memory cache by commit SHA; truncates to 10 files
+- `backend/src/services/indexing/diff_analyzer.py` — `analyze_diff(diff_text) → DiffResult`; regex-based symbol extraction from `+`/`-` lines; per-hunk `new_code_blocks`
+- Unit tests: 67 passing across all indexing services
 
 ---
 
@@ -153,15 +163,14 @@ cd backend && uv run alembic upgrade head
 
 ## Next work (pick up here)
 
-**Phase 4 — Agent pipeline: indexing** (`tasks/todo.md`):
+**Phase 5 — LLM Judgment Layer** (`tasks/todo.md`):
 
-- `backend/src/services/indexing/ast_indexer.py`
-- `backend/src/services/indexing/md_indexer.py`
-- `backend/src/services/indexing/linker.py`
-- `backend/src/services/indexing/convention_extractor.py`
-- `backend/src/services/indexing/diff_analyzer.py`
+- `backend/src/adapters/openrouter.py` — thin wrapper over OpenAI SDK pointed at OpenRouter; `chat_completion(messages, model, response_format)` → parsed Pydantic model; logs tokens/cost/latency
+- `backend/src/services/judgment/drift_judge.py` — Claude Haiku; structured output
+- `backend/src/services/judgment/style_judge.py` — GPT-4o-mini; structured output
+- `backend/src/services/judgment/fix_drafter.py` — enriches judgments with proposed fixes
 
-Then Phase 5 (OpenRouter adapter + judges), Phase 6 (orchestrator), etc., per `tasks/todo.md`.
+Then Phase 6 (orchestrator), etc., per `tasks/todo.md`.
 
 ---
 
@@ -175,4 +184,4 @@ Then Phase 5 (OpenRouter adapter + judges), Phase 6 (orchestrator), etc., per `t
 
 ## One-line summary for another LLM
 
-> DocGuard MVP: Phases 0–3 done (FastAPI health + webhook + GitHub adapter + domain + async DB + Alembic + repos). Next: Phase 4 indexing services under `backend/src/services/indexing/`. Align `IGitHubAdapter` with `GitHubAdapter` installation_id. Do not commit without user approval. Specs in `doc/` and `tasks/todo.md`.
+> DocGuard MVP: Phases 0–4 done (FastAPI + webhook + GitHub adapter + domain + async DB + Alembic + repos + full indexing pipeline). Next: Phase 5 LLM judgment layer — OpenRouter adapter, drift judge, style judge, fix drafter. Align `IGitHubAdapter` with `GitHubAdapter` installation_id. Do not commit without user approval. Specs in `doc/` and `tasks/todo.md`.
