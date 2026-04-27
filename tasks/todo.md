@@ -21,40 +21,40 @@
 
 ---
 
-## Phase 1 — Domain Models
+## Phase 1 — Domain Models ✅
 
-- [ ] `feat: domain models` — `backend/src/domain/models.py`
+- [x] `feat: domain models` — `backend/src/domain/models.py`
   - `Repo`, `AuditRun`, `Finding` Pydantic v2 models
   - `FindingType` enum: `doc_drift | style_violation | convention`
   - `Severity` enum: `high | medium | low`
   - `AuditStatus` enum: `pending | running | completed | failed`
-- [ ] `feat: domain exceptions` — `backend/src/domain/exceptions.py`
+- [x] `feat: domain exceptions` — `backend/src/domain/exceptions.py`
   - `WebhookVerificationError`, `GitHubAPIError`, `AuditRunError`, `LLMJudgmentError`
-- [ ] `feat: domain interfaces` — `backend/src/domain/ports.py`
+- [x] `feat: domain interfaces` — `backend/src/domain/ports.py`
   - `IGitHubAdapter`, `ILLMAdapter`, `IRunRepository`, `IFindingRepository` abstract base classes
 
 ---
 
-## Phase 2 — Database
+## Phase 2 — Database ✅
 
-- [ ] `feat: SQLAlchemy setup` — `backend/src/db/engine.py` — async engine + `AsyncSession` factory from `DATABASE_URL`
-- [ ] `feat: ORM models` — `backend/src/db/orm.py` — `RepoORM`, `AuditRunORM`, `FindingORM` table definitions
-- [ ] `feat: alembic init + initial migration` — `backend/alembic/` config + `001_initial_schema.py` creating `repos`, `audit_runs`, `findings` + indexes from product doc DDL
-- [ ] `feat: repository layer` — `backend/src/repositories/`
-  - `RunRepository` — `create()`, `update_status()`, `get_by_id()`, `list_by_user()`
+- [x] `feat: SQLAlchemy setup` — `backend/src/db/engine.py` — async engine + `AsyncSession` factory from `DATABASE_URL`
+- [x] `feat: ORM models` — `backend/src/db/orm.py` — `RepoORM`, `AuditRunORM`, `FindingORM` table definitions
+- [x] `feat: alembic init + initial migration` — `backend/alembic/` config + `001_initial_schema.py` creating `repos`, `audit_runs`, `findings` + indexes from product doc DDL
+- [x] `feat: repository layer` — `backend/src/repositories/`
+  - `RunRepository` — `create()`, `update_status()`, `get_by_id()`, `list_by_repo()`
   - `FindingRepository` — `bulk_create()`, `get_by_run()`, `update_action()`
   - `RepoRepository` — `create()`, `get_by_user()`, `get_by_installation()`
 
 ---
 
-## Phase 3 — GitHub App Integration
+## Phase 3 — GitHub App Integration ✅
 
-- [ ] `feat: github webhook endpoint` — `backend/src/api/routers/webhooks.py`
+- [x] `feat: github webhook endpoint` — `backend/src/api/routers/webhooks.py`
   - `POST /webhooks/github`
   - HMAC-SHA256 signature verification against `GITHUB_WEBHOOK_SECRET`
   - Returns `202 Accepted` **before** long audit work: on **Lambda**, use **`lambda:InvokeFunction` async** on a dedicated **audit function** or **SQS** queue (in-process `asyncio.create_task` alone is not enough, the invocation can end and freeze work). Optional JSON body `{ "status": "triggered", "run_id": "<uuid>" }` for tracing (align with `IMPLEMENTATION_GUIDE.md` API Contracts)
   - Handles `pull_request` events: `opened` + `synchronize`
-- [ ] `feat: github API adapter` — `backend/src/adapters/github.py`
+- [x] `feat: github API adapter` — `backend/src/adapters/github.py`
   - `get_pr_diff(repo, pr_number)` — raw unified diff text
   - `get_pr_files(repo, pr_number)` — list of changed file paths + contents
   - `get_file_contents(repo, path, ref)` — fetch any file at a given commit
@@ -66,7 +66,7 @@
 
 ## Phase 4 — Agent Pipeline: Indexing
 
-- [ ] `feat: python AST indexer` — `backend/src/services/indexing/ast_indexer.py`
+- [x] `feat: python AST indexer` — `backend/src/services/indexing/ast_indexer.py`
   - Input: file path + source text
   - Output: list of `CodeSymbol(name, type, signature, docstring, line_number)`
   - Extracts: functions, classes, public methods — using `ast` stdlib only
