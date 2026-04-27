@@ -103,15 +103,15 @@
     `trace_id`, `model`, `prompt_tokens`, `completion_tokens`, `cost_usd`, `latency_ms`, `run_id`
   - `LLMTrace` Pydantic model added to `domain/models.py`; surfaced in the dashboard (Phase 8)
   - Trace data flows: `llm_client` → structlog JSON → CloudWatch → (future) dashboard query
-- [ ] `feat: drift judge` — `backend/src/services/judgment/drift_judge.py`
+- [x] `feat: drift judge` — `backend/src/services/judgment/drift_judge.py`
   - Input: `LinkedPair` + changed code context
   - Output: `DriftJudgment(drifted: bool, severity, description, proposed_fix, reasoning, confidence)` — Pydantic
   - Model: Claude Haiku (via `llm_client`); structured output via `response_format={"type": "json_schema"}`
-- [ ] `feat: style judge` — `backend/src/services/judgment/style_judge.py`
+- [x] `feat: style judge` — `backend/src/services/judgment/style_judge.py`
   - Input: `new_code_block` + `ConventionSet`
   - Output: `StyleJudgment(violation: bool, severity, description, proposed_fix, reasoning, confidence)` — Pydantic
   - Model: GPT-4o-mini (via `llm_client`)
-- [ ] `feat: fix drafter` — `backend/src/services/judgment/fix_drafter.py`
+- [x] `feat: fix drafter` — `backend/src/services/judgment/fix_drafter.py`
   - Input: list of raw judgments with `violation=True`
   - Enriches each with a concrete `proposed_fix` string if not already provided
   - Model: whichever model produced the judgment (reuse for context)
