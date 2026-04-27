@@ -23,16 +23,18 @@ export function LogoutButton() {
   };
 
   return (
-    <>
-      {loading ? <UniversalScreenLoader variant="overlay" message="Signing out…" /> : null}
+    <div className="flex items-center gap-3">
+      {loading ? (
+        <UniversalScreenLoader variant="inline" message="Signing out…" spinnerClassName="h-4 w-4" />
+      ) : null}
       <button
         type="button"
         onClick={onLogout}
         disabled={loading}
         className="rounded border px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50"
       >
-        {loading ? "Signing out…" : "Log out"}
+        Log out
       </button>
-    </>
+    </div>
   );
 }

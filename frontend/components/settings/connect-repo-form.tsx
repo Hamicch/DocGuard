@@ -53,10 +53,10 @@ export function ConnectRepoForm() {
   };
 
   return (
-    <form onSubmit={onSubmit} className="relative space-y-3 rounded-lg border bg-white p-4">
+    <form onSubmit={onSubmit} className="relative overflow-hidden rounded-lg border bg-white p-4">
       {isPending ? (
         <UniversalScreenLoader
-          variant="overlay"
+          variant="panel"
           message="Connecting repository…"
           submessage="Linking this installation to your DocGuard account."
         />

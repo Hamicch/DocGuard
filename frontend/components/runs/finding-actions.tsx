@@ -49,9 +49,14 @@ export function FindingActions({ findingId }: Props) {
   };
 
   return (
-    <div className="relative mt-3 flex flex-wrap items-center gap-2">
+    <div className="mt-3 flex flex-wrap items-center gap-2">
       {isPending ? (
-        <UniversalScreenLoader variant="overlay" message="Saving your response…" spinnerClassName="h-8 w-8" />
+        <UniversalScreenLoader
+          variant="inline"
+          message="Saving…"
+          spinnerClassName="h-3.5 w-3.5"
+          className="w-full basis-full sm:basis-auto sm:w-auto"
+        />
       ) : null}
       <button
         type="button"

@@ -1,41 +1,57 @@
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 
-export type UniversalScreenLoaderVariant = "page" | "overlay";
+export type UniversalScreenLoaderVariant = "page" | "panel" | "inline";
 
 export type UniversalScreenLoaderProps = {
   message?: string;
   submessage?: string;
+  /**
+   * - `page` — route `loading.tsx`: compact centered block (not full-viewport bleed).
+   * - `panel` — `absolute inset-0` over a **relative** parent (card, form). Does not cover the whole window.
+   * - `inline` — spinner + text in a row (headers, button rows).
+   */
   variant?: UniversalScreenLoaderVariant;
   className?: string;
   spinnerClassName?: string;
 };
 
-/**
- * Full-viewport loading UI: `page` for route `loading.tsx`, `overlay` for client mutations (auth, forms).
- */
 export function UniversalScreenLoader({
   message = "Loading…",
   submessage,
   variant = "page",
   className,
-  spinnerClassName = "h-9 w-9",
+  spinnerClassName = "h-8 w-8",
 }: UniversalScreenLoaderProps) {
   const body = (
-    <div className="flex flex-col items-center justify-center gap-3 text-center">
+    <div className="flex flex-col items-center justify-center gap-2 text-center">
       <Spinner className={spinnerClassName} />
       <p className="text-sm font-medium text-gray-800">{message}</p>
       {submessage ? (
-        <p className="max-w-sm text-xs leading-relaxed text-gray-500">{submessage}</p>
+        <p className="max-w-xs text-xs leading-relaxed text-gray-500">{submessage}</p>
       ) : null}
     </div>
   );
 
-  if (variant === "overlay") {
+  if (variant === "inline") {
+    return (
+      <span
+        className={cn("inline-flex items-center gap-2 text-sm text-gray-600", className)}
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <Spinner className={spinnerClassName} />
+        <span>{message}</span>
+      </span>
+    );
+  }
+
+  if (variant === "panel") {
     return (
       <div
         className={cn(
-          "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/90 px-6 backdrop-blur-[1px]",
+          "absolute inset-0 z-10 flex flex-col items-center justify-center rounded-[inherit] bg-white/85 px-3 backdrop-blur-[0.5px]",
           className,
         )}
         role="status"
@@ -48,16 +64,16 @@ export function UniversalScreenLoader({
   }
 
   return (
-    <main
+    <div
       className={cn(
-        "flex min-h-[100dvh] w-full flex-col items-center justify-center bg-gray-50 p-6",
+        "flex w-full flex-col items-center justify-center py-16 text-gray-900",
         className,
       )}
       role="status"
       aria-live="polite"
       aria-busy="true"
     >
-      <div className="rounded-lg border border-gray-200 bg-white px-10 py-12 shadow-sm">{body}</div>
-    </main>
+      <div className="rounded-lg border border-gray-200 bg-white px-8 py-10 shadow-sm">{body}</div>
+    </div>
   );
 }

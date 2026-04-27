@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 
@@ -34,7 +34,6 @@ type LoginFormProps = {
 export function LoginForm({ initialCompletingSignIn = false }: LoginFormProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const authMountRef = useRef<HTMLDivElement>(null);
   const [isCompletingSignIn, setIsCompletingSignIn] = useState(initialCompletingSignIn);
   const redirectTo = useMemo(
     () => (typeof window !== "undefined" ? `${window.location.origin}/runs` : undefined),
@@ -71,30 +70,11 @@ export function LoginForm({ initialCompletingSignIn = false }: LoginFormProps) {
     return () => subscription.unsubscribe();
   }, [router, supabase.auth]);
 
-  useEffect(() => {
-    const root = authMountRef.current;
-    if (!root) {
-      return;
-    }
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as HTMLElement | null;
-      const button = target?.closest("button");
-      if (!button || !root.contains(button)) {
-        return;
-      }
-      if (button.type === "submit" || button.type === "button") {
-        setIsCompletingSignIn(true);
-      }
-    };
-    root.addEventListener("pointerdown", onPointerDown, true);
-    return () => root.removeEventListener("pointerdown", onPointerDown, true);
-  }, []);
-
   return (
-    <div className="relative w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="relative w-full max-w-md overflow-hidden rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
       {isCompletingSignIn ? (
         <UniversalScreenLoader
-          variant="overlay"
+          variant="panel"
           message="Signing you in…"
           submessage="Continue in your browser if a Google or GitHub window opened. This can take a few seconds."
         />
@@ -103,7 +83,7 @@ export function LoginForm({ initialCompletingSignIn = false }: LoginFormProps) {
       <p className="mb-6 text-sm text-gray-500">
         Use email/password, Google, or GitHub to access your dashboard.
       </p>
-      <div ref={authMountRef}>
+      <div>
         <Auth
           supabaseClient={supabase}
           appearance={{ theme: ThemeSupa }}
