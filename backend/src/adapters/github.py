@@ -129,7 +129,7 @@ class GitHubAdapter(IGitHubAdapter):
         return resp.text
 
     async def get_pr_files(
-        self, repo_full_name: str, pr_number: int, installation_id: int
+        self, repo_full_name: str, pr_number: int, installation_id: int, head_sha: str = ""
     ) -> list[dict[str, str]]:
         resp = await self._gh(
             "GET",
@@ -141,7 +141,9 @@ class GitHubAdapter(IGitHubAdapter):
         results: list[dict[str, str]] = []
         for f in files_meta:
             path: str = f["filename"]
-            ref: str = f.get("sha", "HEAD")
+            # Use the commit SHA (head_sha) — not the blob SHA from f["sha"], which the
+            # contents API rejects. Fall back to "HEAD" only when no commit ref is given.
+            ref = head_sha or "HEAD"
             try:
                 content = await self.get_file_contents(
                     repo_full_name, path, ref, installation_id

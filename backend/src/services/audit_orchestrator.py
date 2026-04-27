@@ -113,7 +113,7 @@ class AuditOrchestrator:
         self._run_repo = run_repo
         self._finding_repo = finding_repo
 
-        self._convention_extractor = ConventionExtractor(llm=llm)  # type: ignore[arg-type]
+        self._convention_extractor = ConventionExtractor(llm=llm)
         self._drift_judge = DriftJudge(llm=llm)
         self._style_judge = StyleJudge(llm=llm)
 
@@ -147,7 +147,7 @@ class AuditOrchestrator:
             # ── 3. Fetch changed files ────────────────────────────────────────
             log.info("audit.fetching_files")
             files = await self._github.get_pr_files(
-                repo_full_name, repo.pr_number, installation_id
+                repo_full_name, repo.pr_number, installation_id, head_sha=head_sha
             )
 
             py_files = [f for f in files if f["path"].endswith(".py") and f["content"]]

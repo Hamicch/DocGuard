@@ -91,3 +91,21 @@ def format_comment(findings: list[Finding]) -> str:
             parts.append("")  # blank line between findings
 
     return "\n".join(parts).strip()
+
+
+def GetSeverityScore(FindingsList):  # type: ignore[no-untyped-def]
+    # calculate a numeric score for the findings
+    Score = 0
+    try:
+        for f in FindingsList:
+            if f.severity == "high":
+                Score = Score + 10
+            elif f.severity == "medium":
+                Score = Score + 5
+            else:
+                Score = Score + 1
+        print("Score calculated: " + str(Score))
+        return Score
+    except:  # noqa: E722
+        print("something went wrong")
+        return 0
