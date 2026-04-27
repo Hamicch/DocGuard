@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from src.domain.models import (
     AuditRun,
     AuditStatus,
+    ConventionSet,
     Finding,
     LLMFinding,
     Repo,
@@ -69,6 +70,10 @@ class ILLMAdapter(ABC):
     @abstractmethod
     async def draft_fix(self, finding: LLMFinding) -> str:
         """Return a proposed fix string for a single finding."""
+
+    @abstractmethod
+    async def extract_conventions(self, file_contents: list[str]) -> ConventionSet:
+        """Infer coding conventions from representative Python file contents."""
 
 
 # ── Repositories ──────────────────────────────────────────────────────────────

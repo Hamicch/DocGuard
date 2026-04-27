@@ -105,6 +105,24 @@ class LinkedPair(BaseModel):
     confidence: float  # 0.0 – 1.0
 
 
+# ── Convention extraction types ───────────────────────────────────────────────
+
+
+class ConventionSet(BaseModel):
+    """Inferred style conventions for a repository, extracted by LLM.
+
+    Each field is a short natural-language description of what the codebase
+    does consistently, e.g. "Functions use snake_case; classes use PascalCase."
+    These descriptions are passed verbatim to the style judge.
+    """
+
+    naming: str = ""
+    control_flow: str = ""
+    error_handling: str = ""
+    imports: str = ""
+    comments: str = ""
+
+
 # ── LLM structured output types ───────────────────────────────────────────────
 
 

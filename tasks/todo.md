@@ -78,7 +78,7 @@
   - Input: list of `DocSection[]` + `CodeSymbol[]`
   - Output: list of `LinkedPair(doc_section, code_symbol, confidence)`
   - Strategy: exact name match first; substring match fallback
-- [ ] `feat: convention extractor` — `backend/src/services/indexing/convention_extractor.py`
+- [x] `feat: convention extractor` — `backend/src/services/indexing/convention_extractor.py`
   - Input: list of representative Python file contents (5–10 files)
   - Output: `ConventionSet(naming, control_flow, error_handling, imports, comments)` — Pydantic model
   - Single LLM call; result cached by `head_sha` to avoid re-running on same commit
