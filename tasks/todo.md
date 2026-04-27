@@ -70,7 +70,7 @@
   - Input: file path + source text
   - Output: list of `CodeSymbol(name, type, signature, docstring, line_number)`
   - Extracts: functions, classes, public methods — using `ast` stdlib only
-- [ ] `feat: markdown indexer` — `backend/src/services/indexing/md_indexer.py`
+- [x] `feat: markdown indexer` — `backend/src/services/indexing/md_indexer.py`
   - Input: file path + markdown text
   - Output: list of `DocSection(heading, body, code_blocks[], inline_refs[])`
   - Uses `markdown-it-py`; extracts inline `` `code` `` references
