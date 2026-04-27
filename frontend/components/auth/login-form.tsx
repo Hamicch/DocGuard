@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 
-import { Spinner } from "@/components/ui/spinner";
+import { UniversalScreenLoader } from "@/components/ui/universal-screen-loader";
 import { createClient } from "@/lib/supabase/client";
 
 function AuthLoadingSkeleton() {
@@ -93,18 +93,11 @@ export function LoginForm({ initialCompletingSignIn = false }: LoginFormProps) {
   return (
     <div className="relative w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
       {isCompletingSignIn ? (
-        <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-white/90 px-6 text-center backdrop-blur-[1px]"
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          <Spinner className="h-9 w-9" />
-          <p className="text-sm font-medium text-gray-800">Signing you in…</p>
-          <p className="max-w-xs text-xs text-gray-500">
-            Continue in your browser if a Google or GitHub window opened. This can take a few seconds.
-          </p>
-        </div>
+        <UniversalScreenLoader
+          variant="overlay"
+          message="Signing you in…"
+          submessage="Continue in your browser if a Google or GitHub window opened. This can take a few seconds."
+        />
       ) : null}
       <h1 className="mb-2 text-2xl font-semibold">Sign in to DocGuard</h1>
       <p className="mb-6 text-sm text-gray-500">

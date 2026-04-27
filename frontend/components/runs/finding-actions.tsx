@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { UniversalScreenLoader } from "@/components/ui/universal-screen-loader";
 import { setFindingAction } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 
@@ -48,7 +49,10 @@ export function FindingActions({ findingId }: Props) {
   };
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2">
+    <div className="relative mt-3 flex flex-wrap items-center gap-2">
+      {isPending ? (
+        <UniversalScreenLoader variant="overlay" message="Saving your response…" spinnerClassName="h-8 w-8" />
+      ) : null}
       <button
         type="button"
         onClick={() => handleAction("accepted")}

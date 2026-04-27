@@ -1,5 +1,5 @@
-import { RouteAuthLoading } from "@/components/ui/route-auth-loading";
+import { UniversalScreenLoader } from "@/components/ui/universal-screen-loader";
 
 export default function RunsRouteLoading() {
-  return <RouteAuthLoading message="Loading your dashboard…" />;
+  return <UniversalScreenLoader message="Loading your dashboard…" />;
 }

@@ -1,5 +1,5 @@
-import { RouteAuthLoading } from "@/components/ui/route-auth-loading";
+import { UniversalScreenLoader } from "@/components/ui/universal-screen-loader";
 
 export default function RunDetailRouteLoading() {
-  return <RouteAuthLoading message="Loading run…" />;
+  return <UniversalScreenLoader message="Loading run…" />;
 }

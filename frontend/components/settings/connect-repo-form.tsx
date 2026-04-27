@@ -3,6 +3,7 @@
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { UniversalScreenLoader } from "@/components/ui/universal-screen-loader";
 import { connectRepo } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 
@@ -52,7 +53,14 @@ export function ConnectRepoForm() {
   };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3 rounded-lg border bg-white p-4">
+    <form onSubmit={onSubmit} className="relative space-y-3 rounded-lg border bg-white p-4">
+      {isPending ? (
+        <UniversalScreenLoader
+          variant="overlay"
+          message="Connecting repository…"
+          submessage="Linking this installation to your DocGuard account."
+        />
+      ) : null}
       <h2 className="text-lg font-semibold">Connect Repository</h2>
       <div className="space-y-1">
         <label className="text-sm font-medium" htmlFor="fullName">
