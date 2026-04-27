@@ -182,7 +182,11 @@ class AuditOrchestrator:
 
             # ── 6. Extract conventions ────────────────────────────────────────
             py_sources = [f["content"] for f in py_files]
-            conventions = await self._convention_extractor.extract(head_sha, py_sources)
+            conventions = await self._convention_extractor.extract(
+                head_sha,
+                py_sources,
+                run_id=run_id,
+            )
             log.info("audit.conventions_extracted")
 
             # ── 7 & 8. Fetch diff + analyze ───────────────────────────────────

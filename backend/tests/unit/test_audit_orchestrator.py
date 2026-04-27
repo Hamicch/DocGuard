@@ -245,3 +245,34 @@ async def test_only_py_and_md_files_are_indexed() -> None:
     # Only README.md indexed
     assert mock_md.call_count == 1
     assert mock_md.call_args[0][0] == "README.md"
+
+
+@pytest.mark.asyncio
+async def test_convention_extractor_receives_run_id() -> None:
+    files = [{"path": "src/foo.py", "content": "def foo(): ..."}]
+    github = make_github(files=files)
+    orch = make_orchestrator(github=github)
+    run = make_run()
+
+    orch._convention_extractor = MagicMock()
+    orch._convention_extractor.extract = AsyncMock(return_value=ConventionSet())
+    orch._drift_judge = MagicMock()
+    orch._drift_judge.judge_many = AsyncMock(return_value=[])
+    orch._drift_judge._model = "test-drift-model"
+    orch._style_judge = MagicMock()
+    orch._style_judge.judge_many = AsyncMock(return_value=[])
+    orch._style_judge._model = "test-style-model"
+
+    with (
+        patch("src.services.audit_orchestrator.index_python", return_value=[]),
+        patch("src.services.audit_orchestrator.index_markdown", return_value=[]),
+        patch("src.services.audit_orchestrator.link", return_value=[]),
+        patch("src.services.audit_orchestrator.analyze_diff", return_value=DiffResult()),
+    ):
+        await orch.run_audit(run, REPO_FULL_NAME, INSTALLATION_ID, SHA)
+
+    orch._convention_extractor.extract.assert_awaited_once_with(
+        SHA,
+        ["def foo(): ..."],
+        run_id=run.id,
+    )

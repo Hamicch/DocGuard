@@ -79,7 +79,12 @@ class ILLMAdapter(ABC):
         """Return a proposed fix string for a single finding."""
 
     @abstractmethod
-    async def extract_conventions(self, file_contents: list[str]) -> ConventionSet:
+    async def extract_conventions(
+        self,
+        file_contents: list[str],
+        *,
+        run_id: uuid.UUID | None = None,
+    ) -> ConventionSet:
         """Infer coding conventions from representative Python file contents."""
 
 

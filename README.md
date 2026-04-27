@@ -36,7 +36,7 @@ Terraform scaffolding for AWS Lambda + API Gateway now lives in `infra/`.
 ```bash
 cd infra
 cp terraform.tfvars.example terraform.tfvars
-# fill values
+# fill values, including optional Langfuse keys if you want tracing in Lambda
 terraform init
 terraform plan -var-file="terraform.tfvars"
 terraform apply -var-file="terraform.tfvars"

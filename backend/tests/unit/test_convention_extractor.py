@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import uuid
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from src.domain.models import ConventionSet, LLMFinding
+from src.domain.models import ConventionSet
 from src.domain.ports import ILLMAdapter
 from src.services.indexing.convention_extractor import MAX_FILES, ConventionExtractor
-
 
 # ── mock adapter ──────────────────────────────────────────────────────────────
 
@@ -127,3 +127,14 @@ async def test_cache_not_shared_between_extractor_instances() -> None:
     await extractor_b.extract(SHA, FILES)
 
     assert llm.extract_conventions.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_run_id_is_forwarded_to_extract_conventions() -> None:
+    llm = make_llm()
+    extractor = ConventionExtractor(llm)
+    run_id = uuid.uuid4()
+
+    await extractor.extract(SHA, FILES, run_id=run_id)
+
+    assert llm.extract_conventions.await_args.kwargs["run_id"] == run_id

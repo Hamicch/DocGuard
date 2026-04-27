@@ -54,6 +54,9 @@ resource "aws_lambda_function" "api" {
       GITHUB_WEBHOOK_SECRET     = var.github_webhook_secret
       LLM_API_KEY               = var.llm_api_key
       LLM_BASE_URL              = var.llm_base_url
+      LANGFUSE_PUBLIC_KEY       = var.langfuse_public_key
+      LANGFUSE_SECRET_KEY       = var.langfuse_secret_key
+      LANGFUSE_HOST             = var.langfuse_host
     }
   }
 

@@ -18,6 +18,9 @@ github_webhook_secret  = "your-webhook-secret"
 
 llm_api_key  = "your-openrouter-or-openai-key"
 llm_base_url = "https://openrouter.ai/api/v1"
+langfuse_public_key = ""
+langfuse_secret_key = ""
+langfuse_host       = "https://cloud.langfuse.com"
 
 # Optional
 # alarm_topic_arn = "arn:aws:sns:us-east-1:123456789012:ops-alerts"
