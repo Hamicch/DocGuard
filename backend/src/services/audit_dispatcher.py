@@ -22,6 +22,7 @@ class AuditDispatchEvent:
     pr_number: int
     head_sha: str
     action: str
+    pr_title: str = ""
 
     @classmethod
     def from_webhook_payload(cls, payload: dict[str, Any], run_id: uuid.UUID) -> AuditDispatchEvent:
@@ -30,6 +31,7 @@ class AuditDispatchEvent:
         pr_number = payload.get("number")
         head_sha = payload.get("pull_request", {}).get("head", {}).get("sha")
         action = payload.get("action", "")
+        pr_title = payload.get("pull_request", {}).get("title", "")
 
         if installation_id is None:
             raise AuditRunError("Webhook payload missing installation.id", run_id=str(run_id))
@@ -47,6 +49,7 @@ class AuditDispatchEvent:
             pr_number=int(pr_number),
             head_sha=str(head_sha),
             action=str(action),
+            pr_title=str(pr_title),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -57,6 +60,7 @@ class AuditDispatchEvent:
             "pr_number": self.pr_number,
             "head_sha": self.head_sha,
             "action": self.action,
+            "pr_title": self.pr_title,
         }
 
 
