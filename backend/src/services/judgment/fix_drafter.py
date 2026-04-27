@@ -80,6 +80,7 @@ Generate a concrete proposed_fix for this finding.
             model=self._model,
             response_format=_FixResponse,
             run_id=run_id,
+            span_name="fix_drafter",
         )
 
         # Return a new model instance with proposed_fix filled in

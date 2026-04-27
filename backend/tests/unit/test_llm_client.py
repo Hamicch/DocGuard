@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import uuid
-from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -147,12 +146,14 @@ async def test_trace_carries_run_id() -> None:
 
 
 @pytest.mark.asyncio
-async def test_langfuse_generation_uses_deterministic_trace_id() -> None:
+async def test_langfuse_generation_uses_run_id_as_trace_id() -> None:
     client, mock_inner = make_client()
-    client._langfuse = MagicMock()
-    client._langfuse.create_trace_id.return_value = "0123456789abcdef0123456789abcdef"
+
     generation = MagicMock()
-    client._langfuse.start_as_current_observation.return_value = nullcontext(generation)
+    trace = MagicMock()
+    trace.generation.return_value = generation
+    client._langfuse = MagicMock()
+    client._langfuse.trace.return_value = trace
 
     run_id = uuid.uuid4()
     expected = EchoSchema(message="hello", score=0.9)
@@ -163,18 +164,21 @@ async def test_langfuse_generation_uses_deterministic_trace_id() -> None:
         model=HAIKU,
         response_format=EchoSchema,
         run_id=run_id,
+        span_name="test_agent",
     )
 
-    client._langfuse.create_trace_id.assert_called_once_with(seed=str(run_id))
-    client._langfuse.start_as_current_observation.assert_called_once_with(
-        name="EchoSchema",
-        as_type="generation",
+    client._langfuse.trace.assert_called_once_with(
+        id=str(run_id),
+        name="audit_run",
+        metadata={"run_id": str(run_id)},
+    )
+    trace.generation.assert_called_once_with(
+        name="test_agent",
         model=HAIKU,
         input={"messages": [{"role": "user", "content": "hi"}]},
-        metadata={"response_format": "EchoSchema", "run_id": str(run_id)},
-        trace_context={"trace_id": "0123456789abcdef0123456789abcdef"},
+        metadata={"response_format": "EchoSchema"},
     )
-    generation.update.assert_called_once_with(
+    generation.end.assert_called_once_with(
         output={"message": "hello", "score": 0.9},
         usage_details={
             "prompt_tokens": 10,

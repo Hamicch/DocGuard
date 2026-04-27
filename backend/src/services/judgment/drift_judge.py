@@ -104,6 +104,7 @@ class DriftJudge:
             model=self._model,
             response_format=DriftJudgment,
             run_id=run_id,
+            span_name="drift_judge",
         )
 
         logger.info(
