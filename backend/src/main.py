@@ -68,7 +68,13 @@ def handler(event: dict[str, Any], context: Any) -> Any:
         from src.services.audit_dispatcher import AuditDispatchEvent
 
         audit_event = AuditDispatchEvent(**event)
-        asyncio.run(run_background_audit(audit_event))
+        # Use new_event_loop + set_event_loop rather than asyncio.run().
+        # asyncio.run() closes the loop after completion; on a warm Lambda
+        # reuse the next call (HTTP) hits Mangum which calls get_event_loop()
+        # and crashes because the loop was torn down.
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(run_background_audit(audit_event))
         return {"status": "ok"}
 
     # API Gateway / ALB event — let Mangum handle it as HTTP.
