@@ -19,7 +19,8 @@ function AuthLoadingSkeleton() {
   );
 }
 
-const SupabaseAuth = dynamic(() => import("@supabase/auth-ui-react").then((mod) => mod.Auth), {
+/** Client-only Supabase Auth UI (avoids themed vs unstyled flash on first paint). */
+const Auth = dynamic(() => import("@supabase/auth-ui-react").then((mod) => mod.Auth), {
   ssr: false,
   loading: () => <AuthLoadingSkeleton />,
 });
@@ -50,7 +51,7 @@ export function LoginForm() {
       <p className="mb-6 text-sm text-gray-500">
         Use email/password, Google, or GitHub to access your dashboard.
       </p>
-      <SupabaseAuth
+      <Auth
         supabaseClient={supabase}
         appearance={{ theme: ThemeSupa }}
         providers={["google", "github"]}
