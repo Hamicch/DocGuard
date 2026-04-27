@@ -1,6 +1,8 @@
+import asyncio
 import contextlib
 import logging
 from collections.abc import AsyncGenerator
+from typing import Any
 
 import structlog
 from fastapi import FastAPI
@@ -51,40 +53,23 @@ async def health() -> dict[str, str]:
     return {"status": "ok", "environment": settings.environment}
 
 
-# ── Lambda entry point ────────────────────────────────────────────────────────
-#
-# The same function handles two distinct invocation patterns:
-#
-#   1. API Gateway proxy event  →  Mangum → FastAPI (webhooks, REST API)
-#   2. Direct async invocation  →  audit pipeline runner
-#      (triggered by AuditDispatcher in lambda_async mode)
-#
-# A direct audit event is identified by the presence of the "run_id" key,
-# which is never present in APIGW proxy events.
-
+# Lambda handler: dual-routing between HTTP (API Gateway) and direct invocations.
+# When AUDIT_DISPATCH_MODE=lambda_async, the webhook handler invokes this same Lambda
+# with the AuditDispatchEvent payload directly (InvocationType="Event").  Mangum only
+# understands HTTP events, so we detect the direct-invocation shape and route it to
+# run_background_audit instead.
 _mangum = Mangum(app, lifespan="off")
 
 
-def handler(event: dict, context: object) -> dict:  # type: ignore[type-arg]
-    if "run_id" in event:
-        # Direct Lambda invocation — run the audit pipeline synchronously.
-        import asyncio
-
+def handler(event: dict[str, Any], context: Any) -> Any:
+    if "run_id" in event and "installation_id" in event:
+        # Direct Lambda invocation — run the audit pipeline.
         from src.services.audit_background_runner import run_background_audit
         from src.services.audit_dispatcher import AuditDispatchEvent
 
-        log = structlog.get_logger(__name__)
-        log.info("lambda.audit_dispatch.received", run_id=event.get("run_id"))
-        dispatch_event = AuditDispatchEvent(
-            run_id=str(event["run_id"]),
-            installation_id=int(event["installation_id"]),
-            repo_full_name=str(event["repo_full_name"]),
-            pr_number=int(event["pr_number"]),
-            head_sha=str(event["head_sha"]),
-            action=str(event.get("action", "")),
-        )
-        asyncio.run(run_background_audit(dispatch_event))
-        return {"statusCode": 200, "body": "audit complete"}
+        audit_event = AuditDispatchEvent(**event)
+        asyncio.run(run_background_audit(audit_event))
+        return {"status": "ok"}
 
-    # Standard API Gateway / function URL invocation.
-    return _mangum(event, context)  # type: ignore[arg-type]
+    # API Gateway / ALB event — let Mangum handle it as HTTP.
+    return _mangum(event, context)

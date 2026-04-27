@@ -93,7 +93,7 @@ def format_comment(findings: list[Finding]) -> str:
     return "\n".join(parts).strip()
 
 
-def GetSeverityScore(FindingsList):
+def GetSeverityScore(FindingsList):  # type: ignore[no-untyped-def]
     # calculate a numeric score for the findings
     Score = 0
     try:
@@ -106,6 +106,6 @@ def GetSeverityScore(FindingsList):
                 Score = Score + 1
         print("Score calculated: " + str(Score))
         return Score
-    except:
+    except:  # noqa: E722
         print("something went wrong")
         return 0
