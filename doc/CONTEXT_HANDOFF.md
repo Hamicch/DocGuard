@@ -195,13 +195,50 @@ cd backend && uv run alembic upgrade head
 
 ## Next work (pick up here)
 
-**Phase 8 — Frontend Dashboard** (`tasks/todo.md`):
+**Phase 8 — Frontend Dashboard** (`tasks/todo.md`) — IN PROGRESS:
 
-- `npx create-next-app@latest frontend` — TypeScript, Tailwind, App Router + shadcn/ui
-- Supabase Auth (`@supabase/ssr`) — `middleware.ts`, login page, session refresh
-- `/runs` list view (Server Component, calls `GET /api/runs` with JWT)
-- `/runs/[id]` finding detail view with Accept/Ignore/Custom action buttons
-- `/settings` repo connect flow (`POST /api/repos`)
+### State at handoff
+The user ran `npx create-next-app@latest frontend --typescript --tailwind --app --no-src-dir --import-alias "@/*" --no-eslint --yes` at session end. Check whether `frontend/` was scaffolded before starting:
+
+```bash
+ls frontend/
+```
+
+If the scaffold succeeded you will see `package.json`, `app/`, `tailwind.config.ts`, etc. If it only has `.gitkeep`, run the scaffold command above first.
+
+### Step-by-step for Phase 8
+
+**1. Install Supabase + shadcn deps (from `frontend/`):**
+```bash
+cd frontend
+npm install @supabase/ssr @supabase/supabase-js
+npx shadcn@latest init   # choose "Default" style, CSS variables yes
+npx shadcn@latest add button badge card table
+```
+
+**2. Env vars** — create `frontend/.env.local`:
+```
+NEXT_PUBLIC_SUPABASE_URL=<from .env>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<from .env>
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
+
+**3. Supabase client helpers** — `frontend/lib/supabase/`:
+- `server.ts` — `createServerClient` (for Server Components / Route Handlers)
+- `client.ts` — `createBrowserClient` (for Client Components)
+
+**4. `frontend/middleware.ts`** — session refresh on every request using `@supabase/ssr`
+
+**5. Pages to build:**
+- `app/login/page.tsx` — email/password + GitHub OAuth via Supabase Auth UI; redirect to `/runs` on success
+- `app/runs/page.tsx` — Server Component; `GET /api/runs` with JWT; table of runs (status badge, counts, date, link)
+- `app/runs/[id]/page.tsx` — finding cards grouped by type; Accept/Ignore/Custom action buttons → `POST /api/findings/{id}/action`
+- `app/settings/page.tsx` — connect repo form → `POST /api/repos`
+- `app/layout.tsx` — wrap with Supabase session provider; nav bar
+
+**6. API helper** — `frontend/lib/api.ts` — thin fetch wrapper that injects `Authorization: Bearer <supabase_jwt>` from session
+
+**7. After all pages work:** commit as `feat: frontend dashboard — auth, runs, findings, settings`
 
 ---
 
@@ -215,4 +252,4 @@ cd backend && uv run alembic upgrade head
 
 ## One-line summary for another LLM
 
-> DocGuard MVP: Phases 0–7 done (FastAPI + webhook + GitHub adapter + domain + async DB + Alembic + repos + full indexing pipeline + LLM judgment layer + full REST API with Supabase JWT auth). 123 unit tests passing. Next: Phase 8 frontend dashboard. Tech debt tracked in tasks/tech_debt.md. Do not commit without user approval. Specs in `doc/` and `tasks/todo.md`.
+> DocGuard MVP: Phases 0–7 done (FastAPI + webhook + GitHub adapter + domain + async DB + Alembic + repos + full indexing pipeline + LLM judgment layer + full REST API with Supabase JWT auth). 123 unit tests passing. Phase 8 frontend scaffold may be in progress — check `frontend/` for package.json. Tech debt in tasks/tech_debt.md. Commit after every phase. Specs in `doc/` and `tasks/todo.md`.
