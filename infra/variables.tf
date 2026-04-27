@@ -115,3 +115,20 @@ variable "alarm_topic_arn" {
   type        = string
   default     = ""
 }
+
+variable "audit_dispatch_mode" {
+  description = "Audit dispatch mode."
+  type        = string
+  default     = "background"
+}
+
+variable "audit_worker_lambda_name" {
+  description = "Audit worker lambda name."
+  type        = string
+  default     = "docguard-audit-worker"
+}
+
+variable "audit_sqs_queue_url" {
+  description = "Audit SQS queue URL."
+  type        = string
+}

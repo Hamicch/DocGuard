@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Any
+from typing import Any, cast
 
 import httpx
 import structlog
@@ -30,7 +30,8 @@ async def _get_supabase_jwks() -> list[dict[str, Any]]:
     global _jwks_cache, _jwks_cache_expiry
 
     if _jwks_cache and time.time() < _jwks_cache_expiry:
-        return _jwks_cache.get("keys", [])
+        cached_keys = _jwks_cache.get("keys", [])
+        return cast(list[dict[str, Any]], cached_keys)
 
     jwks_url = f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
     try:
@@ -44,18 +45,21 @@ async def _get_supabase_jwks() -> list[dict[str, Any]]:
 
     _jwks_cache = data
     _jwks_cache_expiry = time.time() + _JWKS_CACHE_TTL_SECONDS
-    return data.get("keys", [])
+    return cast(list[dict[str, Any]], data.get("keys", []))
 
 
 async def _decode_supabase_token(token: str) -> dict[str, Any]:
     # First try legacy Supabase JWT secret flow (HS256).
     if settings.supabase_jwt_secret:
         try:
-            return jwt.decode(
-                token,
-                settings.supabase_jwt_secret,
-                algorithms=["HS256"],
-                options={"verify_aud": False},
+            return cast(
+                dict[str, Any],
+                jwt.decode(
+                    token,
+                    settings.supabase_jwt_secret,
+                    algorithms=["HS256"],
+                    options={"verify_aud": False},
+                ),
             )
         except JWTError:
             # Fall through to JWKS verification for modern projects.
@@ -74,11 +78,14 @@ async def _decode_supabase_token(token: str) -> dict[str, Any]:
     if key is None:
         raise JWTError("No matching JWKS key found for token kid")
 
-    return jwt.decode(
-        token,
-        key,
-        algorithms=[alg],
-        options={"verify_aud": False},
+    return cast(
+        dict[str, Any],
+        jwt.decode(
+            token,
+            key,
+            algorithms=[alg],
+            options={"verify_aud": False},
+        ),
     )
 
 
