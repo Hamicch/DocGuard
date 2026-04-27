@@ -147,12 +147,17 @@ docs:   documentation only
 
 ## LLM Usage Patterns
 
-All LLM calls go through `adapters/openrouter.py`:
-- Drift judgment → Claude Haiku (structured output)
-- Style judgment → GPT-4o-mini (structured output)
-- Fix drafting → whichever model handled the judgment
+All LLM calls go through `adapters/llm_client.py` — a provider-agnostic wrapper:
+
+- Uses the **OpenAI Python SDK** pointed at `https://openrouter.ai/api/v1` (OpenRouter exposes an OpenAI-compatible API)
+- Switching providers = change `base_url` + `api_key` env vars; no code changes required
+- Default models (overridable via env var or caller): Claude Haiku for drift, GPT-4o-mini for style
 - All responses validated against Pydantic schemas before use
-- Token counts + cost logged to CloudWatch per run
+
+**Tracing** — every call emits an `LLMTrace` structured event via structlog:
+- Fields: `trace_id`, `model`, `prompt_tokens`, `completion_tokens`, `cost_usd`, `latency_ms`, `run_id`
+- Traces flow to CloudWatch; surfaced in the Next.js dashboard (Phase 8)
+- Use the OpenAI SDK's built-in usage fields (`response.usage`) to capture token counts
 
 ---
 

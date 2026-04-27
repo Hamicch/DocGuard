@@ -165,9 +165,9 @@ cd backend && uv run alembic upgrade head
 
 **Phase 5 — LLM Judgment Layer** (`tasks/todo.md`):
 
-- `backend/src/adapters/openrouter.py` — thin wrapper over OpenAI SDK pointed at OpenRouter; `chat_completion(messages, model, response_format)` → parsed Pydantic model; logs tokens/cost/latency
-- `backend/src/services/judgment/drift_judge.py` — Claude Haiku; structured output
-- `backend/src/services/judgment/style_judge.py` — GPT-4o-mini; structured output
+- `backend/src/adapters/llm_client.py` — provider-agnostic LLM client using the **OpenAI Python SDK** pointed at OpenRouter's OpenAI-compatible API (`https://openrouter.ai/api/v1`). Switching providers is a config change only. Emits an `LLMTrace` structured log event per call (trace_id, model, tokens, cost, latency, run_id). `LLMTrace` Pydantic model to be added to `domain/models.py`.
+- `backend/src/services/judgment/drift_judge.py` — Claude Haiku; structured JSON output
+- `backend/src/services/judgment/style_judge.py` — GPT-4o-mini; structured JSON output
 - `backend/src/services/judgment/fix_drafter.py` — enriches judgments with proposed fixes
 
 Then Phase 6 (orchestrator), etc., per `tasks/todo.md`.

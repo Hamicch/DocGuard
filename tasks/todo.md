@@ -91,19 +91,26 @@
 
 ## Phase 5 — LLM Judgment Layer
 
-- [ ] `feat: openrouter adapter` — `backend/src/adapters/openrouter.py`
-  - Thin wrapper over OpenAI SDK pointed at `https://openrouter.ai/api/v1`
+- [ ] `feat: LLM client` — `backend/src/adapters/llm_client.py`
+  - Provider-agnostic: uses the **OpenAI Python SDK** pointed at `https://openrouter.ai/api/v1`
+    (OpenRouter exposes an OpenAI-compatible API so any provider is a config change, not a code change)
+  - Swapping to a different base URL / API key is the only change needed to target OpenAI, Anthropic, etc. directly
   - `chat_completion(messages, model, response_format)` → parsed Pydantic model
-  - Logs `tokens_used`, `cost_usd`, `model`, `latency_ms` via structlog
-  - Model constants: `HAIKU = "anthropic/claude-haiku"`, `GPT4O_MINI = "openai/gpt-4o-mini"`, `GEMINI_FLASH = "google/gemini-flash-1.5"`
+  - Model constants are just strings — easily overridden by env var or caller:
+    `HAIKU = "anthropic/claude-haiku-4-5"`, `GPT4O_MINI = "openai/gpt-4o-mini"`, `GEMINI_FLASH = "google/gemini-flash-1.5"`
+  - **OpenAI SDK tracing**: attach an `AsyncOpenAI` client with tracing enabled; each call emits an
+    `LLMTrace` structured log event (and optionally persists to DB) containing:
+    `trace_id`, `model`, `prompt_tokens`, `completion_tokens`, `cost_usd`, `latency_ms`, `run_id`
+  - `LLMTrace` Pydantic model added to `domain/models.py`; surfaced in the dashboard (Phase 8)
+  - Trace data flows: `llm_client` → structlog JSON → CloudWatch → (future) dashboard query
 - [ ] `feat: drift judge` — `backend/src/services/judgment/drift_judge.py`
   - Input: `LinkedPair` + changed code context
   - Output: `DriftJudgment(drifted: bool, severity, description, proposed_fix, reasoning, confidence)` — Pydantic
-  - Model: Claude Haiku; structured output via `response_format={"type": "json_schema"}`
+  - Model: Claude Haiku (via `llm_client`); structured output via `response_format={"type": "json_schema"}`
 - [ ] `feat: style judge` — `backend/src/services/judgment/style_judge.py`
   - Input: `new_code_block` + `ConventionSet`
   - Output: `StyleJudgment(violation: bool, severity, description, proposed_fix, reasoning, confidence)` — Pydantic
-  - Model: GPT-4o-mini
+  - Model: GPT-4o-mini (via `llm_client`)
 - [ ] `feat: fix drafter` — `backend/src/services/judgment/fix_drafter.py`
   - Input: list of raw judgments with `violation=True`
   - Enriches each with a concrete `proposed_fix` string if not already provided
