@@ -65,7 +65,13 @@ class FindingRepository(IFindingRepository):
         except Exception as exc:
             raise RepositoryError(f"Failed to fetch findings for run {run_id}: {exc}") from exc
 
-    async def update_action(self, finding_id: uuid.UUID, action: UserAction) -> None:
+    async def update_action(
+        self,
+        finding_id: uuid.UUID,
+        action: UserAction,
+        *,
+        custom_fix: str | None = None,
+    ) -> None:
         try:
             result = await self._session.execute(
                 select(FindingORM).where(FindingORM.id == finding_id)
@@ -74,6 +80,8 @@ class FindingRepository(IFindingRepository):
             if row is None:
                 raise RepositoryError(f"Finding {finding_id} not found")
             row.user_action = action.value
+            if action is UserAction.custom and custom_fix is not None:
+                row.proposed_fix = custom_fix
             await self._session.flush()
         except RepositoryError:
             raise

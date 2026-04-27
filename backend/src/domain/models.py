@@ -32,6 +32,8 @@ class AuditStatus(StrEnum):
 class UserAction(StrEnum):
     accepted = "accepted"
     dismissed = "dismissed"
+    ignored = "ignored"
+    custom = "custom"
     pending = "pending"
 
 

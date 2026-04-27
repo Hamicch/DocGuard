@@ -2,7 +2,7 @@
 
 **Purpose:** Give another LLM (or human) enough context to continue implementation without re-reading the full chat history.
 
-**Last updated:** 2026-04-27 (approximate session end)
+**Last updated:** 2026-04-27
 
 ---
 
@@ -46,7 +46,7 @@
 
 ## Phases completed (implementation status)
 
-Phases **0–6** are implemented in code. **`tasks/todo.md`** marks them with checkboxes; treat that file as the live checklist.
+Phases **0–7** are implemented in code. **`tasks/todo.md`** marks them with checkboxes; treat that file as the live checklist.
 
 ### Phase 0 — Scaffold
 - Monorepo dirs, `backend/pyproject.toml`, `uv.lock`, Ruff/Mypy/pytest config
@@ -179,18 +179,29 @@ cd backend && uv run alembic upgrade head
 - 123 unit tests total, all passing
 - Active tech debt tracked in `tasks/tech_debt.md`
 
+### Phase 7 — API Layer
+- `backend/src/api/middleware/auth.py` — `get_current_user` FastAPI dependency; Supabase JWT via `python-jose` HS256; returns `uuid.UUID` from `sub` claim; raises HTTP 401 on missing/invalid/expired tokens
+- `backend/src/api/deps.py` — `get_run_repository`, `get_finding_repository`, `get_repo_repository` FastAPI generator dependencies (wrap `get_session`)
+- `backend/src/api/routers/runs.py` — `GET /api/runs` (paginated, 20/page) + `GET /api/runs/{id}` (run + findings)
+- `backend/src/api/routers/findings.py` — `POST /api/findings/{id}/action`; `custom` action requires `custom_fix`; updates `proposed_fix` in DB
+- `backend/src/api/routers/repos.py` — `GET /api/repos` + `POST /api/repos` (409 on duplicate installation_id)
+- `backend/src/main.py` — CORS middleware, `lifespan` context manager (disposes engine on shutdown), all routers registered
+- `backend/src/domain/models.py` — `UserAction` enum extended with `ignored` and `custom` values (pays Phase 6 tech debt)
+- `backend/src/domain/ports.py` — `IFindingRepository.update_action` gets optional `custom_fix` kwarg; `IRunRepository.list_by_user` added (paginated, returns `tuple[list[AuditRun], int]`)
+- `backend/src/repositories/run_repository.py` — `list_by_user` implemented via JOIN on `RepoORM.user_id`
+- 123 unit tests, all passing; mypy clean
+
 ---
 
 ## Next work (pick up here)
 
-**Phase 7 — API Layer** (`tasks/todo.md`):
+**Phase 8 — Frontend Dashboard** (`tasks/todo.md`):
 
-- Supabase JWT middleware (`backend/src/api/middleware/auth.py`)
-- `GET /api/runs`, `GET /api/runs/{id}`, `POST /api/findings/{id}/action`
-- `GET /api/repos`, `POST /api/repos`
-- Wire `RepoRepository.get_by_installation()` in webhook handler to resolve `repo_full_name` properly (resolves `pr_title` overloading tech debt)
-
-Then Phase 6 (orchestrator), etc., per `tasks/todo.md`.
+- `npx create-next-app@latest frontend` — TypeScript, Tailwind, App Router + shadcn/ui
+- Supabase Auth (`@supabase/ssr`) — `middleware.ts`, login page, session refresh
+- `/runs` list view (Server Component, calls `GET /api/runs` with JWT)
+- `/runs/[id]` finding detail view with Accept/Ignore/Custom action buttons
+- `/settings` repo connect flow (`POST /api/repos`)
 
 ---
 
@@ -204,4 +215,4 @@ Then Phase 6 (orchestrator), etc., per `tasks/todo.md`.
 
 ## One-line summary for another LLM
 
-> DocGuard MVP: Phases 0–6 done (FastAPI + webhook + GitHub adapter + domain + async DB + Alembic + repos + full indexing pipeline + LLM judgment layer). 123 unit tests passing. Next: Phase 7 API layer. Tech debt tracked in tasks/tech_debt.md. Align `IGitHubAdapter` with `GitHubAdapter` installation_id. Do not commit without user approval. Specs in `doc/` and `tasks/todo.md`.
+> DocGuard MVP: Phases 0–7 done (FastAPI + webhook + GitHub adapter + domain + async DB + Alembic + repos + full indexing pipeline + LLM judgment layer + full REST API with Supabase JWT auth). 123 unit tests passing. Next: Phase 8 frontend dashboard. Tech debt tracked in tasks/tech_debt.md. Do not commit without user approval. Specs in `doc/` and `tasks/todo.md`.

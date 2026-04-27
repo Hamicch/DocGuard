@@ -151,20 +151,20 @@
 
 ---
 
-## Phase 7 — API Layer
+## Phase 7 — API Layer ✅
 
-- [ ] `feat: supabase JWT middleware` — `backend/src/api/middleware/auth.py`
+- [x] `feat: supabase JWT middleware` — `backend/src/api/middleware/auth.py`
   - Verifies Supabase-issued JWTs on all `/api/*` routes
   - Extracts `user_id` from `sub` claim; injects as request state
   - Returns `401` on missing/invalid token
-- [ ] `feat: GET /api/runs` — paginated list of user's audit runs (20/page, newest first)
-- [ ] `feat: GET /api/runs/{id}` — run detail + all findings for that run
-- [ ] `feat: POST /api/findings/{id}/action` — accept / ignore / custom action on a finding
+- [x] `feat: GET /api/runs` — paginated list of user's audit runs (20/page, newest first)
+- [x] `feat: GET /api/runs/{id}` — run detail + all findings for that run
+- [x] `feat: POST /api/findings/{id}/action` — accept / ignore / custom action on a finding
   - Body: `{ "action": "accepted" | "ignored" | "custom", "custom_fix": "..." }`
-- [ ] `feat: GET /api/repos` — list user's connected repos
-- [ ] `feat: POST /api/repos` — connect a new repo
+- [x] `feat: GET /api/repos` — list user's connected repos
+- [x] `feat: POST /api/repos` — connect a new repo
   - Body: `{ "full_name": "owner/repo", "github_installation_id": 12345 }`
-- [ ] `feat: FastAPI app wiring` — `backend/src/main.py` — register routers, CORS, lifespan (DB connect/disconnect); export **`handler`** for Lambda (e.g. **Mangum** wrapping the ASGI app, or AWS Lambda Web Adapter pattern)
+- [x] `feat: FastAPI app wiring` — `backend/src/main.py` — register routers, CORS, lifespan (DB connect/disconnect); export **`handler`** for Lambda (e.g. **Mangum** wrapping the ASGI app, or AWS Lambda Web Adapter pattern)
 
 ---
 

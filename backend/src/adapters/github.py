@@ -165,7 +165,7 @@ class GitHubAdapter(IGitHubAdapter):
         data = resp.json()
         if data.get("encoding") == "base64":
             return base64.b64decode(data["content"]).decode("utf-8", errors="replace")
-        return data.get("content", "")
+        return str(data.get("content", ""))
 
     async def post_pr_comment(
         self, repo_full_name: str, pr_number: int, body: str, installation_id: int

@@ -128,6 +128,13 @@ class IRunRepository(ABC):
     @abstractmethod
     async def list_by_repo(self, repo_id: uuid.UUID) -> list[AuditRun]: ...
 
+    @abstractmethod
+    async def list_by_user(
+        self, user_id: uuid.UUID, *, page: int = 1, page_size: int = 20
+    ) -> tuple[list[AuditRun], int]:
+        """Return paginated runs for all repos owned by user, plus total count."""
+        ...
+
 
 class IFindingRepository(ABC):
     @abstractmethod
@@ -138,5 +145,9 @@ class IFindingRepository(ABC):
 
     @abstractmethod
     async def update_action(
-        self, finding_id: uuid.UUID, action: UserAction
+        self,
+        finding_id: uuid.UUID,
+        action: UserAction,
+        *,
+        custom_fix: str | None = None,
     ) -> None: ...

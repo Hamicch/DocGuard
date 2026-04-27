@@ -3,10 +3,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.orm import AuditRunORM
+from src.db.orm import AuditRunORM, RepoORM
 from src.domain.exceptions import RepositoryError
 from src.domain.models import AuditRun, AuditStatus
 from src.domain.ports import IRunRepository
@@ -135,3 +135,28 @@ class RunRepository(IRunRepository):
             return [_to_domain(r) for r in result.scalars().all()]
         except Exception as exc:
             raise RepositoryError(f"Failed to list runs for repo {repo_id}: {exc}") from exc
+
+    async def list_by_user(
+        self, user_id: uuid.UUID, *, page: int = 1, page_size: int = 20
+    ) -> tuple[list[AuditRun], int]:
+        try:
+            base_query = (
+                select(AuditRunORM)
+                .join(RepoORM, AuditRunORM.repo_id == RepoORM.id)
+                .where(RepoORM.user_id == user_id)
+            )
+            count_result = await self._session.execute(
+                select(func.count()).select_from(base_query.subquery())
+            )
+            total = count_result.scalar_one()
+            offset = (page - 1) * page_size
+            rows_result = await self._session.execute(
+                base_query.order_by(AuditRunORM.created_at.desc())
+                .offset(offset)
+                .limit(page_size)
+            )
+            return [_to_domain(r) for r in rows_result.scalars().all()], total
+        except Exception as exc:
+            raise RepositoryError(
+                f"Failed to list runs for user {user_id}: {exc}"
+            ) from exc

@@ -12,7 +12,7 @@ from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Request, 
 from src.config import settings
 from src.domain.exceptions import WebhookVerificationError
 
-logger: structlog.BoundLogger = structlog.get_logger(__name__)
+logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
@@ -70,7 +70,7 @@ async def github_webhook(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
     if x_github_event != "pull_request":
-        logger.debug("webhook.event_skipped", event=x_github_event)
+        logger.debug("webhook.event_skipped", github_event=x_github_event)
         return {"status": "skipped", "reason": f"event '{x_github_event}' not handled"}
 
     try:
