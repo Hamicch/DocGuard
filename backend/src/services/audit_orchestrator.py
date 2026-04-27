@@ -113,7 +113,7 @@ class AuditOrchestrator:
         self._run_repo = run_repo
         self._finding_repo = finding_repo
 
-        self._convention_extractor = ConventionExtractor(llm=llm)  # type: ignore[arg-type]
+        self._convention_extractor = ConventionExtractor(llm=llm)
         self._drift_judge = DriftJudge(llm=llm)
         self._style_judge = StyleJudge(llm=llm)
 
