@@ -131,21 +131,123 @@ nest/
 
 ## Running Locally
 
+### Prerequisites
+
+Make sure you have these installed before starting:
+
+| Tool | Version | Install |
+|---|---|---|
+| Python | 3.12+ | [python.org](https://www.python.org/downloads/) |
+| uv | latest | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Node.js | 18+ | [nodejs.org](https://nodejs.org/) |
+| Git | any | [git-scm.com](https://git-scm.com/) |
+
+You will also need accounts on:
+- **Supabase** — database and auth ([supabase.com](https://supabase.com))
+- **GitHub** — a GitHub App installed on your target repo
+- **OpenAI** — API key for LLM calls ([platform.openai.com](https://platform.openai.com))
+- **Langfuse** *(optional)* — LLM observability ([langfuse.com](https://langfuse.com))
+
+---
+
+### Step 1 — Clone the repo
+
 ```bash
-# 1. Copy and fill in secrets
-cp backend/.env.example backend/.env
-
-# 2. Install backend deps
-cd backend && uv sync --extra dev
-
-# 3. Start the API
-uv run uvicorn src.main:app --reload
-
-# 4. Start the frontend (separate terminal)
-cd frontend && npm install && npm run dev
+git clone https://github.com/Hamicch/DocGuard.git
+cd DocGuard
 ```
 
-For webhook delivery during local development, forward GitHub webhooks with [smee.io](https://smee.io) or `gh webhook forward`.
+---
+
+### Step 2 — Set up the backend environment
+
+Create a `.env` file in the repo root:
+
+```bash
+cp backend/.env.example .env   # then open .env and fill in the values below
+```
+
+| Variable | Required | Description |
+|---|---|---|
+| `SUPABASE_URL` | Yes | Your Supabase project URL — found in Project Settings → API |
+| `SUPABASE_ANON_KEY` | Yes | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key (bypasses RLS) |
+| `SUPABASE_JWT_SECRET` | Yes | JWT secret — found in Project Settings → API |
+| `DATABASE_URL` | Yes | Postgres connection string from Supabase → Project Settings → Database |
+| `GITHUB_APP_ID` | Yes | Your GitHub App ID |
+| `GITHUB_APP_PRIVATE_KEY` | Yes | GitHub App private key (paste the full PEM, including headers) |
+| `GITHUB_WEBHOOK_SECRET` | Yes | Secret set when creating the GitHub App webhook |
+| `LLM_API_KEY` | Yes | OpenAI API key (`sk-...`) |
+| `LLM_BASE_URL` | No | Defaults to `https://api.openai.com/v1`. Change to OpenRouter URL if using OpenRouter |
+| `LANGFUSE_PUBLIC_KEY` | No | Enables LLM tracing in Langfuse |
+| `LANGFUSE_SECRET_KEY` | No | Enables LLM tracing in Langfuse |
+| `LANGFUSE_HOST` | No | Defaults to `https://cloud.langfuse.com` |
+
+---
+
+### Step 3 — Run database migrations
+
+```bash
+cd backend
+uv sync --extra dev
+uv run alembic upgrade head
+```
+
+---
+
+### Step 4 — Start the backend API
+
+```bash
+cd backend
+uv run uvicorn src.main:app --reload --port 8000
+```
+
+The API will be available at `http://localhost:8000`. You can verify it's running at `http://localhost:8000/docs`.
+
+---
+
+### Step 5 — Set up the frontend environment
+
+Create a `.env.local` file in the `frontend/` directory:
+
+```bash
+cd frontend
+cp .env.local.example .env.local   # then fill in the values below
+```
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Same Supabase project URL as above |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same Supabase anon key as above |
+| `NEXT_PUBLIC_API_URL` | Backend API URL — `http://localhost:8000` for local dev |
+
+---
+
+### Step 6 — Start the frontend dashboard
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The dashboard will be available at `http://localhost:3000`.
+
+---
+
+### Step 7 — Forward GitHub webhooks to your local backend
+
+GitHub can't send webhooks to `localhost` directly. Use [smee.io](https://smee.io) to forward them:
+
+```bash
+# Install the smee client
+npm install -g smee-client
+
+# Forward webhooks to your local backend
+smee --url https://smee.io/<your-channel> --target http://localhost:8000/webhooks/github
+```
+
+Set the smee URL as your GitHub App's webhook URL, then open a PR on a connected repo — DocGuard will pick it up automatically.
 
 ---
 
