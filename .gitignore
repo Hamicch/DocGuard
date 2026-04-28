@@ -38,5 +38,13 @@ frontend/out/
 # Claude
 .claude/
 
+# Cursor
+.cursor/
+
+# Internal planning docs — removed from repo
+doc/
+architecture/
+PROJECT_PRESENTATION.md
+
 # Task planning docs
 tasks/

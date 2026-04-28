@@ -37,12 +37,10 @@ logger = structlog.get_logger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
 # ── Model name constants ───────────────────────────────────────────────────────
-# These are OpenRouter model strings. If routing directly to a provider,
-# replace with that provider's native model ID.
+# Native OpenAI model IDs (LLM_BASE_URL=https://api.openai.com/v1).
 
-HAIKU = "anthropic/claude-haiku-4-5"
-GPT4O_MINI = "openai/gpt-4o-mini"
-GEMINI_FLASH = "google/gemini-flash-1.5"
+GPT4O_MINI = "gpt-4o-mini"
+HAIKU = GPT4O_MINI
 
 _CONVENTION_SYSTEM_PROMPT = """\
 You infer stable Python coding conventions from several file excerpts of the same codebase.
@@ -70,7 +68,12 @@ class LLMClient:
     """
 
     def __init__(self, api_key: str, base_url: str) -> None:
-        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        openai_default = "https://api.openai.com/v1"
+        self._client = (
+            AsyncOpenAI(api_key=api_key)
+            if not base_url or base_url.rstrip("/") == openai_default.rstrip("/")
+            else AsyncOpenAI(api_key=api_key, base_url=base_url)
+        )
         self._traces_by_run: dict[uuid.UUID, list[LLMTrace]] = defaultdict(list)
         self._langfuse = self._init_langfuse()
 
