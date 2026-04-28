@@ -198,4 +198,3 @@ Traces are grouped by `run_id` and visible under **Traces** in the Langfuse dash
 - [Product spec](doc/PRODUCT_DOCUMENT.md)
 - [Architecture diagram](architecture/README.md)
 - [Infrastructure docs](infra/README.md)
-- [Task board](tasks/todo.md)
