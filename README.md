@@ -68,7 +68,6 @@ nest/
 ├── frontend/       # Next.js 15 dashboard → Vercel
 ├── infra/          # Terraform — Lambda, API Gateway, CloudWatch
 ├── architecture/   # System diagram and architecture notes
-└── tasks/          # todo.md, progress.md, lessons.md
 ```
 
 ---
