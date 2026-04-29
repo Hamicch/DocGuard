@@ -145,50 +145,6 @@ async def test_trace_carries_run_id() -> None:
     )
 
 
-@pytest.mark.asyncio
-async def test_langfuse_generation_uses_run_id_as_trace_id() -> None:
-    client, mock_inner = make_client()
-
-    generation = MagicMock()
-    trace = MagicMock()
-    trace.generation.return_value = generation
-    client._langfuse = MagicMock()
-    client._langfuse.trace.return_value = trace
-
-    run_id = uuid.uuid4()
-    expected = EchoSchema(message="hello", score=0.9)
-    mock_inner.beta.chat.completions.parse.return_value = make_openai_response(expected)
-
-    await client.chat_completion(
-        messages=[{"role": "user", "content": "hi"}],
-        model=HAIKU,
-        response_format=EchoSchema,
-        run_id=run_id,
-        span_name="test_agent",
-    )
-
-    client._langfuse.trace.assert_called_once_with(
-        id=str(run_id),
-        name="audit_run",
-        metadata={"run_id": str(run_id)},
-    )
-    trace.generation.assert_called_once_with(
-        name="test_agent",
-        model=HAIKU,
-        input={"messages": [{"role": "user", "content": "hi"}]},
-        metadata={"response_format": "EchoSchema"},
-    )
-    generation.end.assert_called_once_with(
-        output={"message": "hello", "score": 0.9},
-        usage_details={
-            "prompt_tokens": 10,
-            "completion_tokens": 20,
-            "total_tokens": 30,
-        },
-        cost_details=None,
-    )
-
-
 # ── error cases ───────────────────────────────────────────────────────────────
 
 
@@ -230,18 +186,5 @@ def test_from_settings_constructs_client() -> None:
     with patch("src.adapters.llm_client.settings") as mock_settings:
         mock_settings.llm_api_key = "key-123"
         mock_settings.llm_base_url = "http://fake/v1"
-        mock_settings.langfuse_public_key = ""
-        mock_settings.langfuse_secret_key = ""
         client = LLMClient.from_settings()
     assert isinstance(client, LLMClient)
-
-
-def test_from_settings_disables_langfuse_without_credentials() -> None:
-    with patch("src.adapters.llm_client.settings") as mock_settings:
-        mock_settings.llm_api_key = "key-123"
-        mock_settings.llm_base_url = "http://fake/v1"
-        mock_settings.langfuse_public_key = ""
-        mock_settings.langfuse_secret_key = ""
-        client = LLMClient.from_settings()
-
-    assert client._langfuse is None

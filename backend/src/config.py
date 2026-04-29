@@ -32,10 +32,8 @@ class Settings(BaseSettings):
 
     aws_region: str = "us-east-1"
 
-    # Langfuse settings.
-    langfuse_public_key: str = ""
-    langfuse_secret_key: str = ""
-    langfuse_host: str = "https://cloud.langfuse.com"
+    # LangTrace settings.
+    langtrace_api_key: str = ""
 
 
 settings = Settings()

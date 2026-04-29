@@ -7,6 +7,10 @@ Default routing: OpenRouter (https://openrouter.ai/api/v1).
 To target OpenAI directly:  LLM_BASE_URL=https://api.openai.com/v1
 To target Anthropic directly: LLM_BASE_URL=https://api.anthropic.com/v1
 
+LangTrace observability is enabled automatically when LANGTRACE_API_KEY is set.
+It auto-instruments the OpenAI SDK via OpenTelemetry — no manual span management
+required. Each audit run is grouped under a named root span.
+
 Usage::
 
     client = LLMClient.from_settings()
@@ -58,6 +62,20 @@ Fields:
 Respond strictly with the JSON schema provided. Be concise.
 """
 
+# ── LangTrace initialisation ───────────────────────────────────────────────────
+# Initialise once at import time. LangTrace patches the OpenAI SDK via
+# OpenTelemetry so every subsequent client.beta.chat.completions.parse call is
+# captured automatically — no per-call instrumentation needed.
+
+if settings.langtrace_api_key:
+    try:
+        from langtrace_python_sdk import langtrace
+
+        langtrace.init(api_key=settings.langtrace_api_key, disable_logging=True)
+        logger.info("langtrace.initialised")
+    except Exception as exc:  # pragma: no cover
+        logger.warning("langtrace.init_failed", error=str(exc))
+
 
 class LLMClient:
     """Thin async wrapper around ``AsyncOpenAI`` with per-call tracing.
@@ -75,64 +93,11 @@ class LLMClient:
             else AsyncOpenAI(api_key=api_key, base_url=base_url)
         )
         self._traces_by_run: dict[uuid.UUID, list[LLMTrace]] = defaultdict(list)
-        self._langfuse = self._init_langfuse()
 
     @classmethod
     def from_settings(cls) -> LLMClient:
         """Construct from the application ``Settings`` singleton."""
         return cls(api_key=settings.llm_api_key, base_url=settings.llm_base_url)
-
-    def _init_langfuse(self) -> Any | None:
-        if not settings.langfuse_public_key or not settings.langfuse_secret_key:
-            return None
-
-        try:
-            from langfuse import Langfuse
-        except ImportError as exc:
-            logger.warning("langfuse.import_failed", error=str(exc))
-            return None
-
-        return Langfuse(
-            public_key=settings.langfuse_public_key,
-            secret_key=settings.langfuse_secret_key,
-            host=settings.langfuse_host,
-            environment=settings.environment,
-        )
-
-    def _begin_langfuse_generation(
-        self,
-        messages: list[dict[str, str]],
-        model: str,
-        response_format: type[T],
-        run_id: uuid.UUID | None,
-        span_name: str | None,
-    ) -> Any | None:
-        """Open a Langfuse generation under a per-run trace. Returns None when tracing is off."""
-        if self._langfuse is None:
-            return None
-
-        name = span_name or response_format.__name__
-        try:
-            trace_id = str(run_id) if run_id is not None else None
-            trace = self._langfuse.trace(
-                id=trace_id,
-                name="audit_run",
-                metadata={"run_id": trace_id},
-            )
-            return trace.generation(
-                name=name,
-                model=model,
-                input={"messages": messages},
-                metadata={"response_format": response_format.__name__},
-            )
-        except Exception as exc:
-            logger.warning(
-                "langfuse.start_failed",
-                error=str(exc),
-                model=model,
-                run_id=str(run_id) if run_id is not None else None,
-            )
-            return None
 
     def _extract_cost_usd(self, response: Any) -> float:
         candidates = [
@@ -167,15 +132,6 @@ class LLMClient:
 
         return 0.0
 
-    def _flush_langfuse(self) -> None:
-        if self._langfuse is None:
-            return
-
-        try:
-            self._langfuse.flush()
-        except Exception as exc:
-            logger.warning("langfuse.flush_failed", error=str(exc))
-
     async def chat_completion(
         self,
         messages: list[dict[str, str]],
@@ -203,7 +159,6 @@ class LLMClient:
             ValueError: If the response cannot be parsed into *response_format*.
         """
         start = time.monotonic()
-        generation = self._begin_langfuse_generation(messages, model, response_format, run_id, span_name)
 
         response = await self._client.beta.chat.completions.parse(
             model=model,
@@ -215,9 +170,6 @@ class LLMClient:
         usage = response.usage
         prompt_tokens = usage.prompt_tokens if usage else 0
         completion_tokens = usage.completion_tokens if usage else 0
-        total_tokens = (
-            getattr(usage, "total_tokens", None) if usage is not None else None
-        ) or (prompt_tokens + completion_tokens)
         cost_usd = self._extract_cost_usd(response)
 
         llm_trace = LLMTrace(
@@ -239,18 +191,6 @@ class LLMClient:
                 f"LLM returned no parsed content for model {model}. "
                 "Check that the response_format schema is correct."
             )
-
-        if generation is not None:
-            generation.end(
-                output=parsed.model_dump(mode="json"),
-                usage_details={
-                    "prompt_tokens": prompt_tokens,
-                    "completion_tokens": completion_tokens,
-                    "total_tokens": total_tokens,
-                },
-                cost_details={"total_cost": cost_usd} if cost_usd > 0 else None,
-            )
-            self._flush_langfuse()
 
         return parsed
 
@@ -283,5 +223,4 @@ class LLMClient:
         traces = self._traces_by_run.get(run_id, [])
         if run_id in self._traces_by_run:
             del self._traces_by_run[run_id]
-        self._flush_langfuse()
         return traces

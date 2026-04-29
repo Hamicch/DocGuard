@@ -267,7 +267,9 @@ Every LLM call emits a structured JSON log event to CloudWatch:
 }
 ```
 
-When `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set, each audit run becomes a trace in Langfuse with nested generations for `convention_extractor`, `drift_judge`, `style_judge`, and `fix_drafter` — giving full visibility into token usage, latency, and cost per agent per run.
+When `LANGTRACE_API_KEY` is set, LangTrace auto-instruments the OpenAI SDK via OpenTelemetry. Every audit run appears as a named trace in the LangTrace dashboard with per-agent spans (`convention_extractor`, `drift_judge`, `style_judge`, `fix_drafter`) — showing token usage, latency, and cost broken down by agent.
+
+Get a key at [langtrace.ai](https://langtrace.ai) → Settings → API Keys.
 
 ---
 
