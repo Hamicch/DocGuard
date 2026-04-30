@@ -65,31 +65,31 @@ export function FindingActions({ findingId }: Props) {
 					className='w-full basis-full sm:basis-auto sm:w-auto'
 				/>
 			) : null}
-			{/* <button
-        type="button"
-        onClick={() => handleAction("accepted")}
-        disabled={isPending}
-        className="rounded bg-green-600 px-3 py-1 text-xs text-white disabled:opacity-50"
-      >
-        Accept
-      </button>
-      <button
-        type="button"
-        onClick={() => handleAction("ignored")}
-        disabled={isPending}
-        className="rounded bg-gray-700 px-3 py-1 text-xs text-white disabled:opacity-50"
-      >
-        Ignore
-      </button>
-      <button
-        type="button"
-        onClick={() => handleAction("custom")}
-        disabled={isPending}
-        className="rounded border border-gray-300 px-3 py-1 text-xs disabled:opacity-50"
-      >
-        Custom
-      </button> */}
-			{/* {error ? <p className='w-full text-xs text-red-600'>{error}</p> : null} */}
+			<button
+				type='button'
+				onClick={() => handleAction("accepted")}
+				disabled={isPending}
+				className='rounded bg-green-600 px-3 py-1 text-xs text-white disabled:opacity-50'
+			>
+				Accept
+			</button>
+			<button
+				type='button'
+				onClick={() => handleAction("ignored")}
+				disabled={isPending}
+				className='rounded bg-gray-700 px-3 py-1 text-xs text-white disabled:opacity-50'
+			>
+				Ignore
+			</button>
+			<button
+				type='button'
+				onClick={() => handleAction("custom")}
+				disabled={isPending}
+				className='rounded border border-gray-300 px-3 py-1 text-xs disabled:opacity-50'
+			>
+				Custom
+			</button>
+			{error ? <p className='w-full text-xs text-red-600'>{error}</p> : null}
 		</div>
 	);
 }
